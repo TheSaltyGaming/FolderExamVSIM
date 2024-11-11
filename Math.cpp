@@ -1,4 +1,9 @@
 ﻿#include "Math.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <glm/glm.hpp>
 
 Math::Math()
 {
@@ -35,6 +40,56 @@ void Math::moveObject(Mesh* mesh, Mesh* target, float speed)
     mesh->globalPosition = tempposition;
     
     }
+
+std::vector<Vertex> Math::loadPointCloud(const std::string& filename) {
+    std::vector<Vertex> points;
+    std::ifstream file(filename);
+    std::string line;
+
+    if (!file.is_open()) {
+        std::cout << "Failed to open file: " << filename << std::endl;
+        return points;
+    }
+
+    glm::vec3 minPoint(FLT_MAX);
+    glm::vec3 maxPoint(-FLT_MAX);
+    bool skipLine = true;
+
+    while (std::getline(file, line)) {
+        if (skipLine) {
+            skipLine = !skipLine;
+            continue;
+        }
+
+        float x, y, z;
+        //Supports both space and tab seperated values
+        if (sscanf_s(line.c_str(), "%f %f %f", &x, &y, &z) == 3 || sscanf_s(line.c_str(), "%f\t%f\t%f", &x, &y, &z) == 3) {
+            float xf = x;
+            float yf = z;
+            float zf = y;
+            Vertex point(glm::vec3(xf, yf, zf), glm::vec3(0.f), glm::vec3(0.f));
+
+            // Update min/max bounds
+            minPoint = glm::min(minPoint, point.Position);
+            maxPoint = glm::max(maxPoint, point.Position);
+
+            points.push_back(point);
+        }
+
+        //skipLine = !skipLine;
+    }
+
+    file.close();
+
+    // Translate points to move the minimum point to the origin
+    for (auto &point : points) {
+        point.Position -= minPoint;
+        point.Position *= 0.1f;
+        point.Position.x *= -1;
+    }
+
+    return points;
+}
 
 void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)
 {

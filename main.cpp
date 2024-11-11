@@ -53,6 +53,8 @@ Mesh PlayerMesh;
 Math math;
 Collision collision;
 
+Mesh PointCloud;
+
 
 
 Mesh CameraMesh;
@@ -195,6 +197,8 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
     }
 
     PlayerMesh.Draw(ShaderProgram.ID);
+
+    PointCloud.Draw(ShaderProgram.ID);
 
     //CameraMesh.Draw(ShaderProgram.ID);
 
@@ -354,6 +358,10 @@ void SetupMeshes()
     //(this comment is for CTRL + F search)
 
     PlayerMesh = Mesh(Cube, 1.f, colors.magenta, nullptr);
+
+    PointCloud = Mesh();
+    PointCloud.vertices = math.loadPointCloud("pointCloud.txt");
+    PointCloud.Setup();
 
     PlayerMesh.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
     PlayerMesh.globalScale = glm::vec3(0.2f, 0.2f, 0.2f);

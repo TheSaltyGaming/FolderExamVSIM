@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <string>
+
 #include "Other/Camera.h"
 #include "Mesh/Mesh.h"
 #include "Vertex.h"
@@ -26,6 +28,8 @@ public:
     glm::vec3 deCasteljau(std::vector<glm::vec3> points, float t);
 
     glm::vec3 lerp(const glm::vec3& start, const glm::vec3& end, float t);
+
+    std::vector<Vertex> loadPointCloud(const std::string& filename);
 
     
     
