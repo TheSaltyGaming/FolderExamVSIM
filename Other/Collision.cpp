@@ -43,7 +43,7 @@ bool Collision::SphereCollision(Mesh* mesh1, Mesh* other)
     
     if (collision)
     {
-        std::cout << "Sphere Collision detected" << std::endl;
+        //std::cout << "Sphere Collision detected" << std::endl;
         glm::vec3 collisionNormal = glm::normalize(mesh1->globalPosition - other->globalPosition);
         
         

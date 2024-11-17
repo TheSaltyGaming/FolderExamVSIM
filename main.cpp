@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <bitset>
+#include <delaunator.hpp>
 
 #include "Shader.h"
 #include "ShaderFileLoader.h"
@@ -19,6 +20,7 @@
 #include "Mesh/Mesh.h"
 #include "glm/mat4x3.hpp"
 #include "Components/TransformComponent.h"
+#include "PerlinNoise.hpp"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -50,10 +52,14 @@ std::vector<Mesh*> sphereMeshes;
 
 Mesh PlayerMesh;
 
+Mesh LightCube;
+
 Math math;
 Collision collision;
 
 Mesh PointCloud;
+
+Mesh surfaceMesh;
 
 
 
@@ -198,7 +204,11 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
 
     PlayerMesh.Draw(ShaderProgram.ID);
 
-    PointCloud.Draw(ShaderProgram.ID);
+    //PointCloud.Draw(ShaderProgram.ID);
+
+    surfaceMesh.Draw(ShaderProgram.ID);
+
+    LightCube.Draw(ShaderProgram.ID);
 
     //CameraMesh.Draw(ShaderProgram.ID);
 
@@ -225,7 +235,18 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     transformComponent->position = PlayerMesh.globalPosition;
     transformComponent->scale = glm::vec3(0.25f, 0.25f, 0.25f);
 
+    // Before the main loop, set the ambient color
+    glm::vec3 ambientColor = glm::vec3(0.3f, 0.3f, 0.3f); // A soft grey ambient light
+    ourShader.use(); // Use the shader program
+    ourShader.setVec3("ambientColor", ambientColor);  // Ensure setVec3 is implemented for Shader
 
+    ourShader.use();
+    glm::vec3 lightPos(1.2f, 30.0f, 2.0f);
+    ourShader.setVec3("lightPos", lightPos);  // Example: Set light position
+    ourShader.setVec3("viewPos", MainCamera.cameraPos);
+    ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f)); // Example: white light
+
+    LightCube.globalPosition = lightPos;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -357,6 +378,11 @@ void SetupMeshes()
     //Create meshes here, Make meshes here, Setup meshes here, define meshes here, setupObjects setup objects create objects
     //(this comment is for CTRL + F search)
 
+    LightCube = Mesh(Cube, 1.f, colors.red, nullptr);
+    LightCube.globalScale = glm::vec3(4.1f, 4.1f, 4.1f);
+    LightCube.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
+    LightCube.Setup();
+
     PlayerMesh = Mesh(Cube, 1.f, colors.magenta, nullptr);
 
     PointCloud = Mesh();
@@ -365,6 +391,118 @@ void SetupMeshes()
 
     PlayerMesh.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
     PlayerMesh.globalScale = glm::vec3(0.2f, 0.2f, 0.2f);
+
+    std::vector<Vertex> points = math.loadPointCloud("pointCloud.txt");
+
+    // Convert points to the format required by delaunator
+    std::vector<double> coords;
+    for (const auto& point : points) {
+        coords.push_back(point.Position.x);
+        coords.push_back(point.Position.z);
+    }
+
+    // Perform Delaunay triangulation
+    delaunator::Delaunator d(coords);
+
+    // Create vertices and indices for the surface mesh
+    std::vector<Vertex> surfaceVertices;
+    std::vector<unsigned int> surfaceIndices;
+
+#pragma region colorGradient
+
+    // Initialize the Perlin noise generator
+    siv::PerlinNoise perlin{ 12345 }; // Seed for consistency
+
+    // Parameters for Perlin noise
+    float noiseScale = 0.6f;     // Controls frequency of the noise
+    int noiseOctaves = 6;        // Number of octaves for noise
+    float noiseIntensity = 0.6f; // Strength of noise effect on color
+
+    // Define gradient colors
+    glm::vec3 startColor = colors.red;    // Low elevation
+    glm::vec3 midColor = colors.yellow;  // Mid elevation
+    glm::vec3 endColor = colors.green* 0.8f;   // High elevation
+
+    // Calculate terrain bounds
+    glm::vec3 minPos(FLT_MAX), maxPos(-FLT_MAX);
+    for (const auto& point : points) {
+        minPos = glm::min(minPos, point.Position);
+        maxPos = glm::max(maxPos, point.Position);
+    }
+
+    float globalMinY = minPos.y;
+    float globalMaxY = maxPos.y;
+    float globalRangeY = globalMaxY - globalMinY;
+
+    // Adjustable scaling for height
+    float heightScale = 2.0f;
+
+    for (const auto& point : points) {
+        Vertex vertex = point;
+
+        // Normalize Y position
+        float normalizedY = (point.Position.y - globalMinY) / globalRangeY;
+
+        // Calculate Perlin noise based on X and Z coordinates
+        float noiseValue = perlin.octave2D_01(
+            point.Position.x * noiseScale,
+            point.Position.z * noiseScale,
+            noiseOctaves
+        );
+
+        // Blend Perlin noise with normalized height
+        normalizedY += noiseIntensity * noiseValue;
+        normalizedY = glm::clamp(normalizedY, 0.0f, 1.0f);
+
+        // Apply height scaling for more dramatic transitions
+        float scaledY = pow(normalizedY, heightScale);
+
+        // Interpolate color based on the blended value
+        if (scaledY < 0.5f) {
+            vertex.Color = glm::mix(startColor, midColor, scaledY * 2.0f);
+        } else {
+            vertex.Color = glm::mix(midColor, endColor, (scaledY - 0.5f) * 2.0f);
+        }
+
+        vertex.Normal = glm::vec3(0.0f);
+
+        surfaceVertices.push_back(vertex);
+    }
+
+#pragma endregion
+
+
+
+    for (std::size_t i = 0; i < d.triangles.size(); i += 3) {
+        surfaceIndices.push_back(d.triangles[i]);
+        surfaceIndices.push_back(d.triangles[i + 1]);
+        surfaceIndices.push_back(d.triangles[i + 2]);
+    }
+
+    // Calculate normals for the terrain
+    for (size_t i = 0; i < surfaceIndices.size(); i += 3) {
+        unsigned int i0 = surfaceIndices[i];
+        unsigned int i1 = surfaceIndices[i + 1];
+        unsigned int i2 = surfaceIndices[i + 2];
+
+        glm::vec3 v1 = surfaceVertices[i1].Position - surfaceVertices[i0].Position;
+        glm::vec3 v2 = surfaceVertices[i2].Position - surfaceVertices[i0].Position;
+        glm::vec3 normal = glm::normalize(glm::cross(v1, v2));
+
+        surfaceVertices[i0].Normal += normal;
+        surfaceVertices[i1].Normal += normal;
+        surfaceVertices[i2].Normal += normal;
+    }
+
+    for (auto& vertex : surfaceVertices) {
+        vertex.Normal = glm::normalize(vertex.Normal);
+    }
+
+    surfaceMesh = Mesh();
+    surfaceMesh.vertices = surfaceVertices;
+    surfaceMesh.indices = surfaceIndices;
+    surfaceMesh.Setup();
+
 
 #pragma region OtherMeshes
 
@@ -416,7 +554,8 @@ int main()
     // ------------------------------------
 
     //Shader ourShader("Triangle.vert", "Triangle.frag"); // you can name your shader files however you like
-    Shader ourShader("VertShaderOld.vert", "FragShaderOld.frag"); // you can name your shader files however you like
+    //Shader ourShader("VertShaderOld.vert", "FragShaderOld.frag"); // you can name your shader files however you like
+    Shader ourShader("Shaders/Shader.vert", "Shaders/Shader.frag");
 
     shaderPrograms.push_back(ourShader.ID);
 

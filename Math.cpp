@@ -1,6 +1,9 @@
 ﻿#include "Math.h"
+
+#include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <vector>
 #include <glm/glm.hpp>
@@ -51,35 +54,41 @@ std::vector<Vertex> Math::loadPointCloud(const std::string& filename) {
         return points;
     }
 
+    // Read the first line to get the total number of points
+    std::getline(file, line);
+    int totalPoints = std::stoi(line);
+
     glm::vec3 minPoint(FLT_MAX);
     glm::vec3 maxPoint(-FLT_MAX);
-    bool skipLine = true;
 
+    int currentPoint = 0;
+    int lastProgress = -1;
     while (std::getline(file, line)) {
-        if (skipLine) {
-            skipLine = !skipLine;
-            continue;
-        }
-
         float x, y, z;
-        //Supports both space and tab seperated values
         if (sscanf_s(line.c_str(), "%f %f %f", &x, &y, &z) == 3 || sscanf_s(line.c_str(), "%f\t%f\t%f", &x, &y, &z) == 3) {
             float xf = x;
             float yf = z;
             float zf = y;
             Vertex point(glm::vec3(xf, yf, zf), glm::vec3(0.f), glm::vec3(0.f));
 
-            // Update min/max bounds
             minPoint = glm::min(minPoint, point.Position);
             maxPoint = glm::max(maxPoint, point.Position);
 
             points.push_back(point);
-        }
+            currentPoint++;
 
-        //skipLine = !skipLine;
+            // Update progress bar every 10%
+            int progress = (int)((float)currentPoint / totalPoints * 100);
+            if (progress / 10 > lastProgress / 10) {
+                lastProgress = progress;
+                std::cout << "\rProgress: " << std::setw(6) << std::fixed << std::setprecision(2) << progress << "%";
+                std::cout.flush();
+            }
+        }
     }
 
     file.close();
+    std::cout << std::endl; // Move to the next line after progress bar
 
     // Translate points to move the minimum point to the origin
     for (auto &point : points) {
@@ -90,6 +99,11 @@ std::vector<Vertex> Math::loadPointCloud(const std::string& filename) {
 
     return points;
 }
+
+std::vector<sTriangle> Math::delauneyTriangle(std::vector<Vertex> &vertices) {
+
+}
+
 
 void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)
 {
@@ -192,6 +206,3 @@ glm::vec3 Math::deCasteljau(std::vector<glm::vec3> points, float t)
 glm::vec3 Math::lerp(const glm::vec3 &start, const glm::vec3 &end, float t) {
     return start + t * (end - start);
 }
-
-
-

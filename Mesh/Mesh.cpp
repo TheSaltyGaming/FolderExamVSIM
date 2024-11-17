@@ -192,13 +192,13 @@ void Mesh::CreateSphere2(float radius, int subdivisions, glm::vec3 color)
     subDivide(v5, v4, v3, subdivisions);
     subDivide(v5, v1, v4, subdivisions);
 
-    std::cout << vertices[2].Position.x << std::endl;
-    std::cout << vertices[2].Position.y << std::endl;
-    std::cout << vertices[2].Position.z << std::endl;
-
-    std::cout << vertices[3].Position.x << std::endl;
-    std::cout << vertices[3].Position.y << std::endl;
-    std::cout << vertices[3].Position.z << std::endl;
+    // std::cout << vertices[2].Position.x << std::endl;
+    // std::cout << vertices[2].Position.y << std::endl;
+    // std::cout << vertices[2].Position.z << std::endl;
+    //
+    // std::cout << vertices[3].Position.x << std::endl;
+    // std::cout << vertices[3].Position.y << std::endl;
+    // std::cout << vertices[3].Position.z << std::endl;
 
     Setup();
     CalculateInitialBoundingBox();
@@ -227,32 +227,36 @@ void Mesh::CreatePlane(float radius, glm::vec3 color)
     CalculateInitialBoundingBox();
 }
 
-void Mesh::Setup()
-{
+void Mesh::Setup() {
+    // Generate and bind Vertex Array Object and Buffers
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
 
+    // Bind and set vertex buffers
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
+    // Define attribute pointers
+
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Position));
     glEnableVertexAttribArray(0);
+
     // Normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
     glEnableVertexAttribArray(1);
+
     // Color attribute
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Color));
     glEnableVertexAttribArray(2);
 
-    // Unbind VAO and VBO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // Unbind VAO
     glBindVertexArray(0);
 }
 
