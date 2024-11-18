@@ -32,8 +32,4 @@ public:
     std::vector<Vertex> loadPointCloud(const std::string& filename);
 
     std::vector<sTriangle> delauneyTriangle(std::vector<Vertex> &vertices);
-
-    
-    
-    
 };

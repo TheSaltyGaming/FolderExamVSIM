@@ -217,7 +217,6 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
 
 }
 
-
 void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 {
     glm::mat4 view = glm::mat4(1.0f);
@@ -385,87 +384,65 @@ void SetupMeshes()
 
     PlayerMesh = Mesh(Cube, 1.f, colors.magenta, nullptr);
 
+    std::vector<Vertex> points = math.loadPointCloud("pointCloud.txt");
+
     PointCloud = Mesh();
-    PointCloud.vertices = math.loadPointCloud("pointCloud.txt");
+    PointCloud.vertices = points;
     PointCloud.Setup();
 
     PlayerMesh.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
     PlayerMesh.globalScale = glm::vec3(0.2f, 0.2f, 0.2f);
 
-    std::vector<Vertex> points = math.loadPointCloud("pointCloud.txt");
 
-    // Convert points to the format required by delaunator
+
+    std::vector<Vertex> downsampledPoints;
+    int step = 8;
+    for (size_t i = 0; i < points.size(); i += step) {
+        downsampledPoints.push_back(points[i]);
+    }
+
+    points = downsampledPoints;
+
     std::vector<double> coords;
     for (const auto& point : points) {
         coords.push_back(point.Position.x);
         coords.push_back(point.Position.z);
     }
 
-    // Perform Delaunay triangulation
+
     delaunator::Delaunator d(coords);
 
-    // Create vertices and indices for the surface mesh
+
     std::vector<Vertex> surfaceVertices;
     std::vector<unsigned int> surfaceIndices;
 
 #pragma region colorGradient
 
+    // Define a gray color as base
+    glm::vec3 baseColor = colors.grey;
+
     // Initialize the Perlin noise generator
-    siv::PerlinNoise perlin{ 12345 }; // Seed for consistency
+    siv::PerlinNoise perlin{ 12345 };
 
     // Parameters for Perlin noise
-    float noiseScale = 0.6f;     // Controls frequency of the noise
-    int noiseOctaves = 6;        // Number of octaves for noise
-    float noiseIntensity = 0.6f; // Strength of noise effect on color
-
-    // Define gradient colors
-    glm::vec3 startColor = colors.red;    // Low elevation
-    glm::vec3 midColor = colors.yellow;  // Mid elevation
-    glm::vec3 endColor = colors.green* 0.8f;   // High elevation
-
-    // Calculate terrain bounds
-    glm::vec3 minPos(FLT_MAX), maxPos(-FLT_MAX);
-    for (const auto& point : points) {
-        minPos = glm::min(minPos, point.Position);
-        maxPos = glm::max(maxPos, point.Position);
-    }
-
-    float globalMinY = minPos.y;
-    float globalMaxY = maxPos.y;
-    float globalRangeY = globalMaxY - globalMinY;
-
-    // Adjustable scaling for height
-    float heightScale = 2.0f;
+    float noiseScale = 0.6f;
+    int noiseOctaves = 6;
+    float noiseIntensity = 0.2f;
 
     for (const auto& point : points) {
         Vertex vertex = point;
 
-        // Normalize Y position
-        float normalizedY = (point.Position.y - globalMinY) / globalRangeY;
-
-        // Calculate Perlin noise based on X and Z coordinates
         float noiseValue = perlin.octave2D_01(
             point.Position.x * noiseScale,
             point.Position.z * noiseScale,
             noiseOctaves
         );
 
-        // Blend Perlin noise with normalized height
-        normalizedY += noiseIntensity * noiseValue;
-        normalizedY = glm::clamp(normalizedY, 0.0f, 1.0f);
 
-        // Apply height scaling for more dramatic transitions
-        float scaledY = pow(normalizedY, heightScale);
-
-        // Interpolate color based on the blended value
-        if (scaledY < 0.5f) {
-            vertex.Color = glm::mix(startColor, midColor, scaledY * 2.0f);
-        } else {
-            vertex.Color = glm::mix(midColor, endColor, (scaledY - 0.5f) * 2.0f);
-        }
+        float colorIntensity = glm::clamp(0.5f + noiseIntensity * (noiseValue - 0.5f), 0.0f, 1.0f);
+        vertex.Color = baseColor * 2.f * colorIntensity;
 
         vertex.Normal = glm::vec3(0.0f);
-
         surfaceVertices.push_back(vertex);
     }
 
@@ -654,6 +631,11 @@ void processInput(GLFWwindow* window)
 
 
     float cameraSpeed = 2.5f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+        cameraSpeed *= 5.0f; // Double the camera speed
+    }
 
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         CameraMode = 1;

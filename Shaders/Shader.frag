@@ -1,35 +1,40 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec3 ourNormal; // Normal at the fragment
-in vec3 ourColor;  // Vertex color
-in vec3 ourPos;    // Position of the fragment
+#define MAX_POINT_LIGHTS 64
 
-uniform vec3 lightPos;   // Position of the light
-uniform vec3 viewPos;    // Position of the camera
-uniform vec3 lightColor; // Color of the light
 
-void main() {
-    // Normalize input vectors
-    vec3 norm = normalize(ourNormal);
-    vec3 lightDir = normalize(lightPos - ourPos);
+in vec3 ourNormal;
+in vec3 ourColor;
+in vec3 ourPos;
+uniform vec4 Color;
+uniform vec3 viewPos;
+vec3 lightColor;
+vec3 lightDir;
+vec3 norm;
+uniform vec3 lightPos;
+
+
+void main()
+{
+    float specularStrength = 0.5;
+    lightColor = vec3(1.0);
+    norm = normalize(ourNormal);
+
+    lightDir = normalize(lightPos - ourPos);
+
     vec3 viewDir = normalize(viewPos - ourPos);
+    vec3 reflectDir = reflect(-lightDir, norm);
 
-    // Ambient component
-    float ambientStrength = 0.2;
-    vec3 ambient = ambientStrength * lightColor;
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    vec3 specular = specularStrength * spec * lightColor;
 
-    // Diffuse component
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
 
-    // Specular component
-    float specularStrength = 0.5;
-    vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0); // Shininess factor
-    vec3 specular = specularStrength * spec * lightColor;
+    float ambientStrength = 0.2;
+    vec3 ambient = ambientStrength * lightColor;
 
-    // Combine all components and apply fragment color
-    vec3 result = (ambient + diffuse + specular) * ourColor;
+    vec3 result = (ambient +diffuse + specular) * ourColor;
     FragColor = vec4(result, 1.0);
 }

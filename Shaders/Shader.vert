@@ -1,27 +1,24 @@
 #version 330 core
 
-layout (location = 0) in vec3 aPos;   // Vertex position
-layout (location = 1) in vec3 aColor; // Vertex color
-layout (location = 2) in vec3 aNormal; // Vertex normal
+layout (location = 0) in vec3 aPos;
+layout (location = 2) in vec3 aColor;
+layout (location = 1) in vec3 aNormal;
 
-out vec3 ourColor;  // Pass vertex color to fragment shader
-out vec3 ourNormal; // Pass transformed normal to fragment shader
-out vec3 ourPos;    // Pass position in world space to fragment shader
+out vec3 ourColor;
+out vec3 ourNormal;
+out vec3 ourPos;
 
-uniform mat4 model;      // Model matrix
-uniform mat4 view;       // View matrix
-uniform mat4 projection; // Projection matrix
 
-void main() {
-    // Transform vertex position into clip space
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+uniform mat4 transform;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
-    // Transform normal to world space (handles non-uniform scaling)
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos , 1.0);
     ourNormal = mat3(transpose(inverse(model))) * aNormal;
-
-    // Pass vertex color
     ourColor = aColor;
+    ourPos = vec3 (model * vec4(aPos,1.0));
 
-    // Transform position to world space
-    ourPos = vec3(model * vec4(aPos, 1.0));
 }
