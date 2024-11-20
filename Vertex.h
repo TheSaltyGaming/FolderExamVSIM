@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <vector>
 #include <glm/geometric.hpp>
 
 #include "glm/vec3.hpp"
@@ -45,4 +46,14 @@ struct sTriangle {
         float distSq = glm::dot(d, d);
         return distSq < circumradiusSquared;
     }
+};
+
+struct BSplineSurface {
+    int degreeU;
+    int degreeV;
+    std::vector<glm::vec3> controlPoints;
+    int numControlPointsU;
+    int numControlPointsV;
+
+
 };

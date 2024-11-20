@@ -45,6 +45,8 @@ add_executable(FolderExamVSIM main.cpp
         Systems/RenderSystem.h
         Systems/System.cpp
         Systems/System.h
+        BsplineFunction.cpp
+        BsplineFunction.h
 )
 
 target_link_libraries(FolderExamVSIM glfw)

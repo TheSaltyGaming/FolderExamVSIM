@@ -21,6 +21,7 @@
 #include "glm/mat4x3.hpp"
 #include "Components/TransformComponent.h"
 #include "PerlinNoise.hpp"
+#include "BsplineFunction.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -30,6 +31,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void DrawObjects(unsigned VAO, Shader ShaderProgram);
 
 void CollisionChecking();
+
+void SetupBsplineSurface();
 
 void Attack();
 glm::vec3 RandomColor();
@@ -61,6 +64,7 @@ Mesh PointCloud;
 
 Mesh surfaceMesh;
 
+Mesh bsplineSurface;
 
 
 Mesh CameraMesh;
@@ -202,15 +206,18 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
         sphere->Draw(ShaderProgram.ID);
     }
 
-    PlayerMesh.Draw(ShaderProgram.ID);
+    //PlayerMesh.Draw(ShaderProgram.ID);
 
     //PointCloud.Draw(ShaderProgram.ID);
 
-    surfaceMesh.Draw(ShaderProgram.ID);
+    //surfaceMesh.Draw(ShaderProgram.ID);
 
-    LightCube.Draw(ShaderProgram.ID);
+    //LightCube.Draw(ShaderProgram.ID);
 
     //CameraMesh.Draw(ShaderProgram.ID);
+
+    bsplineSurface.Draw(ShaderProgram.ID);
+    //MainCamera.cameraPos = bsplineSurface.globalPosition;
 
 
 
@@ -480,6 +487,11 @@ void SetupMeshes()
     surfaceMesh.indices = surfaceIndices;
     surfaceMesh.Setup();
 
+
+    BsplineFunction bspline;
+    bspline.CreateBspline(bsplineSurface);
+
+    bsplineSurface.globalPosition = glm::vec3(0.0f, 4.0f, 0.0f);
 
 #pragma region OtherMeshes
 
@@ -887,4 +899,5 @@ void Attack()
         enemyEntities.end()
     );
 }
+
 

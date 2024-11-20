@@ -104,6 +104,116 @@ std::vector<sTriangle> Math::delauneyTriangle(std::vector<Vertex> &vertices) {
 
 }
 
+std::vector<glm::vec3> Math::generateBSplineControlPoints(const Mesh& mesh, int subdivisions)
+{
+    std::vector<glm::vec3> controlPoints;
+
+    // Iterate over each triangle in the mesh
+    for (size_t i = 0; i < mesh.indices.size(); i += 3) {
+        // Access the three vertices of the triangle
+        Vertex v0 = mesh.vertices[mesh.indices[i]];
+        Vertex v1 = mesh.vertices[mesh.indices[i + 1]];
+        Vertex v2 = mesh.vertices[mesh.indices[i + 2]];
+
+        // Subdivide the triangle
+        for (int u = 0; u <= subdivisions; ++u) {
+            for (int v = 0; v <= subdivisions - u; ++v) {
+                float a = static_cast<float>(u) / subdivisions;
+                float b = static_cast<float>(v) / subdivisions;
+                float c = 1.0f - a - b;
+
+                // Barycentric combination to get the point
+                glm::vec3 point = a * v0.Position + b * v1.Position + c * v2.Position;
+                controlPoints.push_back(point);
+            }
+        }
+    }
+    //optimize shit or smth if needed
+    return controlPoints;
+}
+
+void Math::evaluateBSplineSurface(const BSplineSurface &spline, std::vector<Vertex> &surfaceVertices,
+    std::vector<unsigned int> &surfaceIndices, int resolutionU, int resolutionV)
+{
+    auto bernstein = [&](int i, float t) -> float {
+        // Bernstein basisfunksjon
+        switch (i) {
+            case 0: return (1 - t) * (1 - t);
+            case 1: return 2 * t * (1 - t);
+            case 2: return t * t;
+            default: return 0.0f;
+        }
+    };
+
+    // Vertices are tasty om nom nom
+    for (int u = 0; u <= resolutionU; ++u) {
+        float t = static_cast<float>(u) / resolutionU;
+        for (int v = 0; v <= resolutionV; ++v) {
+            float s = static_cast<float>(v) / resolutionV;
+
+            glm::vec3 position(0.0f);
+
+            // surface positions
+            for (int i = 0; i <= spline.degreeU; ++i) {
+                float Bu = bernstein(i, t);
+                for (int j = 0; j <= spline.degreeV; ++j) {
+                    float Bv = bernstein(j, s);
+                    int index = i * (spline.numControlPointsV) + j;
+                    if (index < spline.controlPoints.size()) {
+                        position += Bu * Bv * spline.controlPoints[index];
+                    }
+                }
+            }
+
+            Vertex vertex;
+            vertex.Position = position;
+            vertex.Color = glm::vec3(0.0f, 1.0f, 0.0f); //green bspline
+            vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+            surfaceVertices.push_back(vertex);
+        }
+    }
+
+    // Indices are also tasty
+    for (int u = 0; u < resolutionU; ++u) {
+        for (int v = 0; v < resolutionV; ++v) {
+            unsigned int i0 = u * (resolutionV + 1) + v;
+            unsigned int i1 = (u + 1) * (resolutionV + 1) + v;
+            unsigned int i2 = (u + 1) * (resolutionV + 1) + (v + 1);
+            unsigned int i3 = u * (resolutionV + 1) + (v + 1);
+
+            // Tri 1
+            surfaceIndices.push_back(i0);
+            surfaceIndices.push_back(i1);
+            surfaceIndices.push_back(i2);
+
+            // tri 2
+            surfaceIndices.push_back(i0);
+            surfaceIndices.push_back(i2);
+            surfaceIndices.push_back(i3);
+        }
+    }
+
+    // Are normals just the seasoning on top?
+    for (size_t i = 0; i < surfaceIndices.size(); i += 3) {
+        unsigned int idx0 = surfaceIndices[i];
+        unsigned int idx1 = surfaceIndices[i + 1];
+        unsigned int idx2 = surfaceIndices[i + 2];
+
+        glm::vec3 v0 = surfaceVertices[idx1].Position - surfaceVertices[idx0].Position;
+        glm::vec3 v1 = surfaceVertices[idx2].Position - surfaceVertices[idx0].Position;
+        glm::vec3 normal = glm::normalize(glm::cross(v0, v1));
+
+        surfaceVertices[idx0].Normal += normal;
+        surfaceVertices[idx1].Normal += normal;
+        surfaceVertices[idx2].Normal += normal;
+    }
+
+    // Normalize the accumulated normals
+    for (auto& vertex : surfaceVertices) {
+        vertex.Normal = glm::normalize(vertex.Normal);
+    }
+}
+
 
 void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)
 {
