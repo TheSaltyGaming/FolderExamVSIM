@@ -100,120 +100,81 @@ std::vector<Vertex> Math::loadPointCloud(const std::string& filename) {
     return points;
 }
 
-std::vector<sTriangle> Math::delauneyTriangle(std::vector<Vertex> &vertices) {
-
-}
-
-std::vector<glm::vec3> Math::generateBSplineControlPoints(const Mesh& mesh, int subdivisions)
+std::vector<TriangleStruct> Math::ExtractTriangles(const Mesh &mesh)
 {
-    std::vector<glm::vec3> controlPoints;
-
-    // Iterate over each triangle in the mesh
+    std::vector<TriangleStruct> triangles;
     for (size_t i = 0; i < mesh.indices.size(); i += 3) {
-        // Access the three vertices of the triangle
-        Vertex v0 = mesh.vertices[mesh.indices[i]];
-        Vertex v1 = mesh.vertices[mesh.indices[i + 1]];
-        Vertex v2 = mesh.vertices[mesh.indices[i + 2]];
+        glm::vec3 v0 = mesh.vertices[mesh.indices[i]].Position;
+        glm::vec3 v1 = mesh.vertices[mesh.indices[i + 1]].Position;
+        glm::vec3 v2 = mesh.vertices[mesh.indices[i + 2]].Position;
+        glm::vec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+        triangles.emplace_back(v0, v1, v2, normal);
+    }
+    return triangles;
+}
 
-        // Subdivide the triangle
-        for (int u = 0; u <= subdivisions; ++u) {
-            for (int v = 0; v <= subdivisions - u; ++v) {
-                float a = static_cast<float>(u) / subdivisions;
-                float b = static_cast<float>(v) / subdivisions;
-                float c = 1.0f - a - b;
+glm::vec3 Math::MapCameraToSurface(const glm::vec3& cameraPos, const Mesh& surfaceMesh) {
+    // Project camera position to XZ-plane
+    glm::vec2 cameraPosXZ(cameraPos.x, cameraPos.z);
 
-                // Barycentric combination to get the point
-                glm::vec3 point = a * v0.Position + b * v1.Position + c * v2.Position;
-                controlPoints.push_back(point);
+    float closestDistance = std::numeric_limits<float>::max();
+    glm::vec3 mappedPosition = cameraPos; // Default to original position
+
+    // Iterate over all triangles in the surface mesh
+    for (size_t i = 0; i < surfaceMesh.indices.size(); i += 3) {
+        // Get the indices of the triangle vertices
+        unsigned int idx0 = surfaceMesh.indices[i];
+        unsigned int idx1 = surfaceMesh.indices[i + 1];
+        unsigned int idx2 = surfaceMesh.indices[i + 2];
+
+        // Get the vertices
+        const glm::vec3& A = surfaceMesh.vertices[idx0].Position;
+        const glm::vec3& B = surfaceMesh.vertices[idx1].Position;
+        const glm::vec3& C = surfaceMesh.vertices[idx2].Position;
+
+        // Project vertices to XZ-plane
+        glm::vec2 A_p(A.x, A.z);
+        glm::vec2 B_p(B.x, B.z);
+        glm::vec2 C_p(C.x, C.z);
+
+        // Compute vectors for barycentric coordinates
+        glm::vec2 v0 = B_p - A_p;
+        glm::vec2 v1 = C_p - A_p;
+        glm::vec2 v2 = cameraPosXZ - A_p;
+
+        float d00 = glm::dot(v0, v0);
+        float d01 = glm::dot(v0, v1);
+        float d11 = glm::dot(v1, v1);
+        float d20 = glm::dot(v2, v0);
+        float d21 = glm::dot(v2, v1);
+
+        float denom = d00 * d11 - d01 * d01;
+
+        // Skip degenerate triangles
+        if (denom == 0.0f) {
+            continue;
+        }
+
+        float v = (d11 * d20 - d01 * d21) / denom;
+        float w = (d00 * d21 - d01 * d20) / denom;
+        float u = 1.0f - v - w;
+
+        // Check if the point is inside the triangle
+        if (u >= 0.0f && v >= 0.0f && w >= 0.0f) {
+            // Interpolate the y-coordinate
+            float height = u * A.y + v * B.y + w * C.y;
+
+            // Optionally, you can compute the distance from the camera to the surface point
+            float distance = std::abs(cameraPos.y - height);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                mappedPosition = glm::vec3(cameraPos.x, height, cameraPos.z);
             }
         }
     }
-    //optimize shit or smth if needed
-    return controlPoints;
+
+    return mappedPosition;
 }
-
-void Math::evaluateBSplineSurface(const BSplineSurface &spline, std::vector<Vertex> &surfaceVertices,
-    std::vector<unsigned int> &surfaceIndices, int resolutionU, int resolutionV)
-{
-    auto bernstein = [&](int i, float t) -> float {
-        // Bernstein basisfunksjon
-        switch (i) {
-            case 0: return (1 - t) * (1 - t);
-            case 1: return 2 * t * (1 - t);
-            case 2: return t * t;
-            default: return 0.0f;
-        }
-    };
-
-    // Vertices are tasty om nom nom
-    for (int u = 0; u <= resolutionU; ++u) {
-        float t = static_cast<float>(u) / resolutionU;
-        for (int v = 0; v <= resolutionV; ++v) {
-            float s = static_cast<float>(v) / resolutionV;
-
-            glm::vec3 position(0.0f);
-
-            // surface positions
-            for (int i = 0; i <= spline.degreeU; ++i) {
-                float Bu = bernstein(i, t);
-                for (int j = 0; j <= spline.degreeV; ++j) {
-                    float Bv = bernstein(j, s);
-                    int index = i * (spline.numControlPointsV) + j;
-                    if (index < spline.controlPoints.size()) {
-                        position += Bu * Bv * spline.controlPoints[index];
-                    }
-                }
-            }
-
-            Vertex vertex;
-            vertex.Position = position;
-            vertex.Color = glm::vec3(0.0f, 1.0f, 0.0f); //green bspline
-            vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            surfaceVertices.push_back(vertex);
-        }
-    }
-
-    // Indices are also tasty
-    for (int u = 0; u < resolutionU; ++u) {
-        for (int v = 0; v < resolutionV; ++v) {
-            unsigned int i0 = u * (resolutionV + 1) + v;
-            unsigned int i1 = (u + 1) * (resolutionV + 1) + v;
-            unsigned int i2 = (u + 1) * (resolutionV + 1) + (v + 1);
-            unsigned int i3 = u * (resolutionV + 1) + (v + 1);
-
-            // Tri 1
-            surfaceIndices.push_back(i0);
-            surfaceIndices.push_back(i1);
-            surfaceIndices.push_back(i2);
-
-            // tri 2
-            surfaceIndices.push_back(i0);
-            surfaceIndices.push_back(i2);
-            surfaceIndices.push_back(i3);
-        }
-    }
-
-    // Are normals just the seasoning on top?
-    for (size_t i = 0; i < surfaceIndices.size(); i += 3) {
-        unsigned int idx0 = surfaceIndices[i];
-        unsigned int idx1 = surfaceIndices[i + 1];
-        unsigned int idx2 = surfaceIndices[i + 2];
-
-        glm::vec3 v0 = surfaceVertices[idx1].Position - surfaceVertices[idx0].Position;
-        glm::vec3 v1 = surfaceVertices[idx2].Position - surfaceVertices[idx0].Position;
-        glm::vec3 normal = glm::normalize(glm::cross(v0, v1));
-
-        surfaceVertices[idx0].Normal += normal;
-        surfaceVertices[idx1].Normal += normal;
-        surfaceVertices[idx2].Normal += normal;
-    }
-
-    // Normalize the accumulated normals
-    for (auto& vertex : surfaceVertices) {
-        vertex.Normal = glm::normalize(vertex.Normal);
-    }
-}
-
 
 void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)
 {

@@ -210,7 +210,7 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
 
     //PointCloud.Draw(ShaderProgram.ID);
 
-    //surfaceMesh.Draw(ShaderProgram.ID);
+    surfaceMesh.Draw(ShaderProgram.ID);
 
     //LightCube.Draw(ShaderProgram.ID);
 
@@ -379,29 +379,8 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     }
 }
 
-void SetupMeshes()
+void Triangulate_Terrain(std::vector<Vertex> &points)
 {
-    //Create meshes here, Make meshes here, Setup meshes here, define meshes here, setupObjects setup objects create objects
-    //(this comment is for CTRL + F search)
-
-    LightCube = Mesh(Cube, 1.f, colors.red, nullptr);
-    LightCube.globalScale = glm::vec3(4.1f, 4.1f, 4.1f);
-    LightCube.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
-    LightCube.Setup();
-
-    PlayerMesh = Mesh(Cube, 1.f, colors.magenta, nullptr);
-
-    std::vector<Vertex> points = math.loadPointCloud("pointCloud.txt");
-
-    PointCloud = Mesh();
-    PointCloud.vertices = points;
-    PointCloud.Setup();
-
-    PlayerMesh.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
-    PlayerMesh.globalScale = glm::vec3(0.2f, 0.2f, 0.2f);
-
-
-
     std::vector<Vertex> downsampledPoints;
     int step = 8;
     for (size_t i = 0; i < points.size(); i += step) {
@@ -492,6 +471,32 @@ void SetupMeshes()
     bspline.CreateBspline(bsplineSurface);
 
     bsplineSurface.globalPosition = glm::vec3(0.0f, 4.0f, 0.0f);
+}
+
+void SetupMeshes()
+{
+    //Create meshes here, Make meshes here, Setup meshes here, define meshes here, setupObjects setup objects create objects
+    //(this comment is for CTRL + F search)
+
+    LightCube = Mesh(Cube, 1.f, colors.red, nullptr);
+    LightCube.globalScale = glm::vec3(4.1f, 4.1f, 4.1f);
+    LightCube.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
+    LightCube.Setup();
+
+    PlayerMesh = Mesh(Cube, 1.f, colors.magenta, nullptr);
+
+    std::vector<Vertex> points = math.loadPointCloud("pointCloud.txt");
+
+    PointCloud = Mesh();
+    PointCloud.vertices = points;
+    PointCloud.Setup();
+
+    PlayerMesh.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
+    PlayerMesh.globalScale = glm::vec3(0.2f, 0.2f, 0.2f);
+
+
+
+    Triangulate_Terrain(points);
 
 #pragma region OtherMeshes
 

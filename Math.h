@@ -31,9 +31,7 @@ public:
 
     std::vector<Vertex> loadPointCloud(const std::string& filename);
 
-    std::vector<sTriangle> delauneyTriangle(std::vector<Vertex> &vertices);
+    std::vector<TriangleStruct> ExtractTriangles(const Mesh& mesh);
 
-    std::vector<glm::vec3> generateBSplineControlPoints(const Mesh& mesh, int subdivisions = 2);
-
-    void evaluateBSplineSurface(const BSplineSurface& spline, std::vector<Vertex>& surfaceVertices, std::vector<unsigned int>& surfaceIndices, int resolutionU = 20, int resolutionV = 20);
+    glm::vec3 MapCameraToSurface(const glm::vec3& cameraPos, const Mesh& surfaceMesh);
 };
