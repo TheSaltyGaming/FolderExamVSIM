@@ -140,7 +140,7 @@ void Mesh::CreatePyramid(float radius, glm::vec3 color)
     CalculateInitialBoundingBox();
 }
 
-void Mesh::subDivide(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, int n) 
+void Mesh::subDivide(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3, int n)
 {
     if (n > 0) {
         glm::vec3 v12 = glm::normalize(v1 + v2);
@@ -173,7 +173,7 @@ void Mesh::CreateSphere2(float radius, int subdivisions, glm::vec3 color)
 {
     Radius = radius;
     ObjectColor = color;
-    
+
     // Define the octahedron vertices and scale them by the radius
     glm::vec3 v0{ 0, 0, radius };
     glm::vec3 v1{ radius, 0, 0 };
@@ -300,16 +300,16 @@ void Mesh::Draw(unsigned shaderProgram)
     if (markedForDeletion) return;
 
     glm::mat4 model = GetTransform();
-    
+
     int modelLoc = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    
+
     glBindVertexArray(VAO);
 
     if (indices.size() == 0) {
         glDrawArrays(GL_POINTS, 0, vertices.size());
     }
-    
+
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(0);
@@ -334,15 +334,15 @@ glm::mat4 Mesh::GetTransform()
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, pos);
-    
+
     model = glm::rotate(model, glm::radians(rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::rotate(model, glm::radians(rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::rotate(model, glm::radians(rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
     model = glm::scale(model, scale);
-    
+
     Radius = 1 * scale.x;
-    
+
     return model;
 }
 
@@ -358,8 +358,8 @@ void Mesh::DrawBoundingBox(unsigned int shaderProgram)
         glm::vec3(maxVert.x, maxVert.y, minVert.z),
         maxVert
     };
-    
-    
+
+
     unsigned int indices[24] = {
         0, 1, 1, 5, 5, 4, 4, 0, // bottom face
         2, 3, 3, 7, 7, 6, 6, 2, // top face
@@ -386,7 +386,7 @@ void Mesh::DrawBoundingBox(unsigned int shaderProgram)
     glBindVertexArray(0);
 
     glUseProgram(shaderProgram);
-    
+
     glm::mat4 model = glm::mat4(1.0f);
     int modelLoc = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
@@ -419,7 +419,7 @@ void Mesh::Physics(float deltaTime)
 
 }
 
-/// 
+///
 /// @param point object to check against
 /// @return closest point on AABB to object
 glm::vec3 Mesh::ClosestPointOnAABB(glm::vec3& point) const
@@ -443,7 +443,7 @@ glm::vec3 Mesh::ClosestPointOnAABB(glm::vec3& point) const
     {
         closestPoint.y = maxVert.y;
     }
-    
+
     if (point.z < minVert.z)
     {
         closestPoint.z = minVert.z;
