@@ -10,9 +10,10 @@
 class Physics {
 public:
 
-    void BallPhysics(float deltaTime, Mesh& ball, Mesh& terrain);
+    void Update();
 
-    void UpdateBall(Mesh& ball, const Mesh& terrain, float deltaTime);
+    void UpdateBall(std::vector<Mesh*>& balls, const Mesh& terrain, float deltaTime);
+    void UpdateBallPhysics(Mesh& ball, const Mesh& terrain, float deltaTime);
 
     const float GRAVITY = -9.81f;
 

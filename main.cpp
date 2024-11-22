@@ -58,6 +58,8 @@ std::vector<std::shared_ptr<Entity>> enemyEntities;
 
 std::vector<Mesh*> sphereMeshes;
 
+std::vector<Mesh*> rollingBalls;
+
 Mesh PlayerMesh;
 
 Mesh LightCube;
@@ -75,6 +77,7 @@ Mesh bsplineSurface;
 Mesh CameraMesh;
 
 Mesh rollingBall;
+Mesh rollingBall2;
 
 
 int lives = 6;
@@ -229,6 +232,7 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
     bsplineSurface.Draw(ShaderProgram.ID);
 
     rollingBall.Draw(ShaderProgram.ID);
+    rollingBall2.Draw(ShaderProgram.ID);
     //MainCamera.cameraPos = bsplineSurface.globalPosition;
 
 
@@ -346,7 +350,9 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             }
         }
 
-        physics.UpdateBall(rollingBall, surfaceMesh, deltaTime);
+        physics.UpdateBall(rollingBalls, surfaceMesh, deltaTime);
+
+        //physics.UpdateBallPhysics(rollingBall, surfaceMesh, deltaTime);
 
         //cout camera position
         //std::cout << "Camera Position: " << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
@@ -368,23 +374,23 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         {
             firstCamera = true;
 
-            glm::vec3 cameraPos = MainCamera.cameraPos;
-
-            // Map the camera position to the surface
-            glm::vec3 mappedPosition = math.MapCameraToSurface(cameraPos, surfaceMesh);
-
-            if (mappedPosition != glm::vec3(-1))
-            {
-                // Check if the camera is above the surface
-                if (cameraPos.y > mappedPosition.y) {
-
-                    float offset = 4.1f;
-                    cameraPos.y = mappedPosition.y + offset;
-                    std::cout << MainCamera.cameraPos.y << std::endl;
-                    //MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, cameraPos, 0.5f);
-                    //MainCamera.cameraPos = cameraPos;
-                }
-            }
+            // glm::vec3 cameraPos = MainCamera.cameraPos;
+            //
+            // // Map the camera position to the surface
+            // glm::vec3 mappedPosition = math.MapCameraToSurface(cameraPos, surfaceMesh);
+            //
+            // if (mappedPosition != glm::vec3(-1))
+            // {
+            //     // Check if the camera is above the surface
+            //     if (cameraPos.y > mappedPosition.y) {
+            //
+            //         float offset = 4.1f;
+            //         cameraPos.y = mappedPosition.y + offset;
+            //         std::cout << MainCamera.cameraPos.y << std::endl;
+            //         MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, cameraPos, 0.5f);
+            //         //MainCamera.cameraPos = cameraPos;
+            //     }
+            // }
         }
 
 
@@ -536,6 +542,16 @@ void SetupMeshes()
     rollingBall.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
     rollingBall.velocity = glm::vec3(0.1f);
     rollingBall.Setup();
+
+    rollingBall2 = Mesh(Sphere, 1.f, 4, colors.red, nullptr);
+    rollingBall2.globalPosition = glm::vec3(1.0f, 0.5f, 0.0f);
+    rollingBall2.velocity = glm::vec3(0.1f);
+    rollingBall2.Setup();
+
+    rollingBalls.push_back(&rollingBall);
+    rollingBalls.push_back(&rollingBall2);
+
+
 
 #pragma region OtherMeshes
 
@@ -730,7 +746,12 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
     {
         rollingBall.globalPosition = MainCamera.cameraPos;
-        rollingBall.velocity = glm::vec3(0.0f, 0.f, -4.f);
+        rollingBall.velocity = glm::vec3(0.0f, 0.f, -3.f);
+    }
+    if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
+    {
+        rollingBall2.globalPosition = MainCamera.cameraPos;
+        rollingBall2.velocity = glm::vec3(0.5f, 0.f, -5.5f);
     }
 }
 
