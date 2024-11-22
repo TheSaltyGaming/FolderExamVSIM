@@ -1,6 +1,22 @@
 ﻿#pragma once
 #include <string>
 
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
+#include "BsplineFunction.h"
 #include "Other/Camera.h"
 #include "Mesh/Mesh.h"
 #include "Vertex.h"
@@ -17,7 +33,7 @@ public:
     
     void moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed);
 
-    glm::vec3 barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P);
+    float barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 objectPos);
 
     float calculateHeightUsingBarycentric2(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C, const glm::vec3& P);
 
@@ -34,4 +50,6 @@ public:
     std::vector<TriangleStruct> ExtractTriangles(const Mesh& mesh);
 
     glm::vec3 MapCameraToSurface(const glm::vec3& cameraPos, const Mesh& surfaceMesh);
+
+    float calculateNormal(glm::vec3 &vector1, glm::vec3 &vector2);
 };

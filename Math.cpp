@@ -120,8 +120,8 @@ glm::vec3 Math::MapCameraToSurface(const glm::vec3& cameraPos, const Mesh& surfa
     int count = 0;
 
     for (const auto& triangle : triangles) {
-        if (isPointAboveTriangle(triangle, cameraPos)) {
-            float height = calculateHeightUsingBarycentric2(triangle.v0, triangle.v1, triangle.v2, cameraPos);
+        float height = barycentricCoordinates(triangle.v0, triangle.v1, triangle.v2, cameraPos);
+        if (height != -1) {  // Only count valid heights
             heightSum += height;
             count++;
         }
@@ -132,7 +132,12 @@ glm::vec3 Math::MapCameraToSurface(const glm::vec3& cameraPos, const Mesh& surfa
         return glm::vec3(cameraPos.x, averageHeight, cameraPos.z);
     }
 
-    return cameraPos;
+    return glm::vec3(-1);  // Return -1 only if no valid triangles found
+}
+
+float Math::calculateNormal(glm::vec3 &vector1, glm::vec3 &vector2)
+{
+    return vector1.x * vector2.z - vector2.x * vector1.z;
 }
 
 void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)
@@ -165,50 +170,77 @@ void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)
     }
 }
 
-glm::vec3 Math::barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 P)
+float Math::barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 objectPos)
 {
-    glm::vec3 v0 = B - A, v1 = C - A, v2 = P - A;
+    // Project to XZ plane
+    glm::vec2 pointXZ(objectPos.x, objectPos.z);
+    glm::vec2 aXZ(A.x, A.z);
+    glm::vec2 bXZ(B.x, B.z);
+    glm::vec2 cXZ(C.x, C.z);
+
+    // Check if point is within triangle bounds (rough AABB check first)
+    float minX = std::min({aXZ.x, bXZ.x, cXZ.x});
+    float maxX = std::max({aXZ.x, bXZ.x, cXZ.x});
+    float minZ = std::min({aXZ.y, bXZ.y, cXZ.y});
+    float maxZ = std::max({aXZ.y, bXZ.y, cXZ.y});
+
+    // Add some margin for floating point precision
+    const float MARGIN = 0.1f;
+    if (pointXZ.x < minX - MARGIN || pointXZ.x > maxX + MARGIN ||
+        pointXZ.y < minZ - MARGIN || pointXZ.y > maxZ + MARGIN) {
+        return -1;
+        }
+
+    // Calculate barycentric coordinates in 2D
+    glm::vec2 v0 = bXZ - aXZ;
+    glm::vec2 v1 = cXZ - aXZ;
+    glm::vec2 v2 = pointXZ - aXZ;
+
     float d00 = glm::dot(v0, v0);
     float d01 = glm::dot(v0, v1);
     float d11 = glm::dot(v1, v1);
     float d20 = glm::dot(v2, v0);
     float d21 = glm::dot(v2, v1);
+
     float denom = d00 * d11 - d01 * d01;
+    if (abs(denom) < 0.0001f) return -1;
 
     float v = (d11 * d20 - d01 * d21) / denom;
     float w = (d00 * d21 - d01 * d20) / denom;
     float u = 1.0f - v - w;
 
-    return glm::vec3(u, v, w);
+    const float EPSILON = 0.01f;
+    if (u >= -EPSILON && v >= -EPSILON && w >= -EPSILON &&
+        u <= 1 + EPSILON && v <= 1 + EPSILON && w <= 1 + EPSILON)
+    {
+        float height = A.y * u + B.y * v + C.y * w;
+        return height;
+    }
+    return -1;
 }
 
 float Math::calculateHeightUsingBarycentric2(const glm::vec3& A, const glm::vec3& B, const glm::vec3& C,
     const glm::vec3& P)
 {
-    // Calculate barycentric coordinates for P within the triangle ABC.
-    glm::vec3 baryCoords = barycentricCoordinates(A, B, C, P);
-
-    // Interpolate Y cood at P.
-    float height = A.y * baryCoords.x + B.y * baryCoords.y + C.y * baryCoords.z;
-    return height;
+    return -1;
 }
 
 bool Math::isPointAboveTriangle(const TriangleStruct& triangle, const glm::vec3& point)
 {
-    // Calculate barycentric coordinates for the point with respect to the triangle
-    glm::vec3 baryCoords = barycentricCoordinates(triangle.v0, triangle.v1, triangle.v2, point);
 
-    // Check if the point lies within the triangle
-    if (baryCoords.x >= 0 && baryCoords.x <= 1 &&
-        baryCoords.y >= 0 && baryCoords.y <= 1 &&
-        baryCoords.z >= 0 && baryCoords.z <= 1)
-    {
-        // Check if the point is above the triangle
-        if (point.y > triangle.v0.y && point.y > triangle.v1.y && point.y > triangle.v2.y)
-        {
-            return true;
-        }
-    }
+    // glm::vec3 baryCoords = barycentricCoordinates(triangle.v0, triangle.v1, triangle.v2, point, TODO);
+    //
+    //
+    // if (baryCoords.x >= 0 && baryCoords.x <= 1 &&
+    //     baryCoords.y >= 0 && baryCoords.y <= 1 &&
+    //     baryCoords.z >= 0 && baryCoords.z <= 1)
+    // {
+    //
+    //     if (point.y > triangle.v0.y && point.y > triangle.v1.y && point.y > triangle.v2.y)
+    //     {
+    //         return true;
+    //     }
+    // }
 
     return false;
 }

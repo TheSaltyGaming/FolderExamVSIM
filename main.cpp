@@ -117,6 +117,8 @@ Camera MainCamera;
 int CameraMode = 1;
 bool firstCamera = true;
 
+glm::vec3 oldBaryCoords = glm::vec3(0.0f);
+
 
 std::vector<unsigned> shaderPrograms;
 
@@ -362,12 +364,17 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             // Map the camera position to the surface
             glm::vec3 mappedPosition = math.MapCameraToSurface(cameraPos, surfaceMesh);
 
-            // Check if the camera is above the surface
-            if (cameraPos.y > mappedPosition.y) {
-                // Optionally, add an offset to keep the camera slightly above the surface
-                float offset = 4.1f;
-                cameraPos.y = mappedPosition.y + offset;
-                MainCamera.cameraPos = cameraPos;
+            if (mappedPosition != glm::vec3(-1))
+            {
+                // Check if the camera is above the surface
+                if (cameraPos.y > mappedPosition.y) {
+
+                    float offset = 4.1f;
+                    cameraPos.y = mappedPosition.y + offset;
+                    std::cout << MainCamera.cameraPos.y << std::endl;
+                    MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, cameraPos, 0.5f);
+                    //MainCamera.cameraPos = cameraPos;
+                }
             }
         }
 
