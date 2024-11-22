@@ -209,6 +209,7 @@ float Math::barycentricCoordinates(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::v
     float w = (d00 * d21 - d01 * d20) / denom;
     float u = 1.0f - v - w;
 
+    //Used for floating point errors, but i probably don't have to. Looks elegant though right? :)
     const float EPSILON = 0.01f;
     if (u >= -EPSILON && v >= -EPSILON && w >= -EPSILON &&
         u <= 1 + EPSILON && v <= 1 + EPSILON && w <= 1 + EPSILON)

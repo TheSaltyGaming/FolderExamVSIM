@@ -66,7 +66,10 @@ public:
 
     float mass = 1;
     float Radius = 1;
+
+
     glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 acceleration = glm::vec3(0.0f, 0.0f, 0.0f);
 
     glm::vec3 boundingBoxCorners [8];
 

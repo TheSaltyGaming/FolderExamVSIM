@@ -22,6 +22,7 @@
 #include "Components/TransformComponent.h"
 #include "PerlinNoise.hpp"
 #include "BsplineFunction.h"
+#include "Other/Physics.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -43,6 +44,8 @@ ComponentManager componentManager;
 EntityManager entityManager = EntityManager(componentManager);
 
 RenderSystem renderSystem = RenderSystem(componentManager, entityManager);
+
+Physics physics;
 
 
 void EntitySetup();
@@ -70,6 +73,8 @@ Mesh bsplineSurface;
 
 
 Mesh CameraMesh;
+
+Mesh rollingBall;
 
 
 int lives = 6;
@@ -222,6 +227,8 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
     //CameraMesh.Draw(ShaderProgram.ID);
 
     bsplineSurface.Draw(ShaderProgram.ID);
+
+    rollingBall.Draw(ShaderProgram.ID);
     //MainCamera.cameraPos = bsplineSurface.globalPosition;
 
 
@@ -339,6 +346,8 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             }
         }
 
+        physics.UpdateBall(rollingBall, surfaceMesh, deltaTime);
+
         //cout camera position
         //std::cout << "Camera Position: " << MainCamera.cameraPos.x << " " << MainCamera.cameraPos.y << " " << MainCamera.cameraPos.z << std::endl;
         if (CameraMode == 2)
@@ -372,7 +381,7 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
                     float offset = 4.1f;
                     cameraPos.y = mappedPosition.y + offset;
                     std::cout << MainCamera.cameraPos.y << std::endl;
-                    MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, cameraPos, 0.5f);
+                    //MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, cameraPos, 0.5f);
                     //MainCamera.cameraPos = cameraPos;
                 }
             }
@@ -521,6 +530,12 @@ void SetupMeshes()
 
 
     Triangulate_Terrain(points);
+
+
+    rollingBall = Mesh(Sphere, 1.f, 4, colors.red, nullptr);
+    rollingBall.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
+    rollingBall.velocity = glm::vec3(0.1f);
+    rollingBall.Setup();
 
 #pragma region OtherMeshes
 
@@ -710,6 +725,12 @@ void processInput(GLFWwindow* window)
         {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+    {
+        rollingBall.globalPosition = MainCamera.cameraPos;
+        rollingBall.velocity = glm::vec3(0.0f, 0.f, -4.f);
     }
 }
 
@@ -949,4 +970,3 @@ void UpdateBall(Mesh &ball, Mesh &Terrain, float deltaTIme)
         ball.velocity.y = 0.0f; //TODO: adjust later maybe idk
     }
 }
-
