@@ -114,66 +114,25 @@ std::vector<TriangleStruct> Math::ExtractTriangles(const Mesh &mesh)
 }
 
 glm::vec3 Math::MapCameraToSurface(const glm::vec3& cameraPos, const Mesh& surfaceMesh) {
-    // Project camera position to XZ-plane
-    glm::vec2 cameraPosXZ(cameraPos.x, cameraPos.z);
+    std::vector<TriangleStruct> triangles = ExtractTriangles(surfaceMesh);
 
-    float closestDistance = std::numeric_limits<float>::max();
-    glm::vec3 mappedPosition = cameraPos; // Default to original position
+    float heightSum = 0.0f;
+    int count = 0;
 
-    // Iterate over all triangles in the surface mesh
-    for (size_t i = 0; i < surfaceMesh.indices.size(); i += 3) {
-        // Get the indices of the triangle vertices
-        unsigned int idx0 = surfaceMesh.indices[i];
-        unsigned int idx1 = surfaceMesh.indices[i + 1];
-        unsigned int idx2 = surfaceMesh.indices[i + 2];
-
-        // Get the vertices
-        const glm::vec3& A = surfaceMesh.vertices[idx0].Position;
-        const glm::vec3& B = surfaceMesh.vertices[idx1].Position;
-        const glm::vec3& C = surfaceMesh.vertices[idx2].Position;
-
-        // Project vertices to XZ-plane
-        glm::vec2 A_p(A.x, A.z);
-        glm::vec2 B_p(B.x, B.z);
-        glm::vec2 C_p(C.x, C.z);
-
-        // Compute vectors for barycentric coordinates
-        glm::vec2 v0 = B_p - A_p;
-        glm::vec2 v1 = C_p - A_p;
-        glm::vec2 v2 = cameraPosXZ - A_p;
-
-        float d00 = glm::dot(v0, v0);
-        float d01 = glm::dot(v0, v1);
-        float d11 = glm::dot(v1, v1);
-        float d20 = glm::dot(v2, v0);
-        float d21 = glm::dot(v2, v1);
-
-        float denom = d00 * d11 - d01 * d01;
-
-        // Skip degenerate triangles
-        if (denom == 0.0f) {
-            continue;
-        }
-
-        float v = (d11 * d20 - d01 * d21) / denom;
-        float w = (d00 * d21 - d01 * d20) / denom;
-        float u = 1.0f - v - w;
-
-        // Check if the point is inside the triangle
-        if (u >= 0.0f && v >= 0.0f && w >= 0.0f) {
-            // Interpolate the y-coordinate
-            float height = u * A.y + v * B.y + w * C.y;
-
-            // Optionally, you can compute the distance from the camera to the surface point
-            float distance = std::abs(cameraPos.y - height);
-            if (distance < closestDistance) {
-                closestDistance = distance;
-                mappedPosition = glm::vec3(cameraPos.x, height, cameraPos.z);
-            }
+    for (const auto& triangle : triangles) {
+        if (isPointAboveTriangle(triangle, cameraPos)) {
+            float height = calculateHeightUsingBarycentric2(triangle.v0, triangle.v1, triangle.v2, cameraPos);
+            heightSum += height;
+            count++;
         }
     }
 
-    return mappedPosition;
+    if (count > 0) {
+        float averageHeight = heightSum / count;
+        return glm::vec3(cameraPos.x, averageHeight, cameraPos.z);
+    }
+
+    return cameraPos;
 }
 
 void Math::moveObject(Mesh* mesh, std::vector<glm::vec3> pointList, float speed)

@@ -37,6 +37,8 @@ void SetupBsplineSurface();
 void Attack();
 glm::vec3 RandomColor();
 
+void UpdateBall(Mesh &Ball, Mesh &Terrain, float deltaTIme);
+
 ComponentManager componentManager;
 EntityManager entityManager = EntityManager(componentManager);
 
@@ -68,6 +70,7 @@ Mesh bsplineSurface;
 
 
 Mesh CameraMesh;
+
 
 int lives = 6;
 
@@ -353,6 +356,19 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         else
         {
             firstCamera = true;
+
+            glm::vec3 cameraPos = MainCamera.cameraPos;
+
+            // Map the camera position to the surface
+            glm::vec3 mappedPosition = math.MapCameraToSurface(cameraPos, surfaceMesh);
+
+            // Check if the camera is above the surface
+            if (cameraPos.y > mappedPosition.y) {
+                // Optionally, add an offset to keep the camera slightly above the surface
+                float offset = 4.1f;
+                cameraPos.y = mappedPosition.y + offset;
+                MainCamera.cameraPos = cameraPos;
+            }
         }
 
 
@@ -382,7 +398,8 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 void Triangulate_Terrain(std::vector<Vertex> &points)
 {
     std::vector<Vertex> downsampledPoints;
-    int step = 8;
+    //Terrain Resolution
+    int step = 100;
     for (size_t i = 0; i < points.size(); i += step) {
         downsampledPoints.push_back(points[i]);
     }
@@ -905,4 +922,24 @@ void Attack()
     );
 }
 
+
+void UpdateBall(Mesh &ball, Mesh &Terrain, float deltaTIme)
+{
+    // Gravity
+    glm::vec3 gravity(0.0f, -9.81f, 0.0f);
+    glm::vec3 force = gravity * ball.mass;
+    glm::vec3 acceleration = force / ball.mass;
+
+    // Velocity and position you know how it is
+    ball.velocity += acceleration * deltaTime;
+    ball.globalPosition += ball.velocity * deltaTime;
+
+    glm::vec3 mappedPos = math.MapCameraToSurface(ball.globalPosition, Terrain);
+
+    // Stop ball from goin below terrain
+    if (ball.globalPosition.y < mappedPos.y) {
+        ball.globalPosition.y = mappedPos.y;
+        ball.velocity.y = 0.0f; //TODO: adjust later maybe idk
+    }
+}
 
