@@ -49,6 +49,10 @@ add_executable(FolderExamVSIM main.cpp
         BsplineFunction.h
         Other/Physics.cpp
         Other/Physics.h
+        Mesh/TerrainGrid.cpp
+        Mesh/TerrainGrid.h
+        Other/BSplineTracer.cpp
+        Other/BSplineTracer.h
 )
 
 target_link_libraries(FolderExamVSIM glfw)

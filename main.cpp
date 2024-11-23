@@ -22,6 +22,8 @@
 #include "Components/TransformComponent.h"
 #include "PerlinNoise.hpp"
 #include "BsplineFunction.h"
+#include "TerrainGrid.h"
+#include "Other/BSplineTracer.h"
 #include "Other/Physics.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -34,6 +36,8 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram);
 void CollisionChecking();
 
 void SetupBsplineSurface();
+
+void UpdateBallTracers();
 
 void Attack();
 glm::vec3 RandomColor();
@@ -60,6 +64,12 @@ std::vector<Mesh*> sphereMeshes;
 
 std::vector<Mesh*> rollingBalls;
 
+std::vector<BSplineTracer> ballTracers;
+std::vector<Mesh> pathMeshes;
+
+float pathUpdateTimer = 0.0f;
+const float PATH_UPDATE_INTERVAL = 0.1f;
+
 Mesh PlayerMesh;
 
 Mesh LightCube;
@@ -78,6 +88,8 @@ Mesh CameraMesh;
 
 Mesh rollingBall;
 Mesh rollingBall2;
+
+TerrainGrid terrainGrid;
 
 
 int lives = 6;
@@ -235,6 +247,9 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
     rollingBall2.Draw(ShaderProgram.ID);
     //MainCamera.cameraPos = bsplineSurface.globalPosition;
 
+    for (auto& pathMesh : pathMeshes) {
+        pathMesh.Draw(ShaderProgram.ID);
+    }
 
 
 
@@ -269,6 +284,11 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f)); // Example: white light
 
     LightCube.globalPosition = lightPos;
+
+    //Enabele wireframe mode
+
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -350,7 +370,7 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             }
         }
 
-        physics.UpdateBall(rollingBalls, surfaceMesh, deltaTime);
+        physics.UpdateBall(rollingBalls, surfaceMesh, deltaTime, terrainGrid);
 
         //physics.UpdateBallPhysics(rollingBall, surfaceMesh, deltaTime);
 
@@ -421,7 +441,7 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
 {
     std::vector<Vertex> downsampledPoints;
     //Terrain Resolution
-    int step = 100;
+    int step = 10;
     for (size_t i = 0; i < points.size(); i += step) {
         downsampledPoints.push_back(points[i]);
     }
@@ -505,6 +525,9 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
     surfaceMesh.indices = surfaceIndices;
     surfaceMesh.Setup();
 
+    float cellSize = 10.f;
+    terrainGrid = TerrainGrid(surfaceVertices, surfaceIndices, cellSize);
+
 
     BsplineFunction bspline;
     bspline.CreateBspline(bsplineSurface);
@@ -551,6 +574,14 @@ void SetupMeshes()
     rollingBalls.push_back(&rollingBall);
     rollingBalls.push_back(&rollingBall2);
 
+    ballTracers.resize(rollingBalls.size());
+
+    ballTracers.clear();
+    pathMeshes.clear();
+    for (size_t i = 0; i < rollingBalls.size(); i++) {
+        ballTracers.emplace_back(3); // degree 3 B-spline
+        pathMeshes.emplace_back();
+    }
 
 
 #pragma region OtherMeshes
@@ -747,11 +778,19 @@ void processInput(GLFWwindow* window)
     {
         rollingBall.globalPosition = MainCamera.cameraPos;
         rollingBall.velocity = glm::vec3(0.0f, 0.f, -3.f);
+
+        ballTracers.clear();
+        pathMeshes.clear();
+        pathUpdateTimer = 0.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
     {
         rollingBall2.globalPosition = MainCamera.cameraPos;
         rollingBall2.velocity = glm::vec3(0.5f, 0.f, -5.5f);
+
+        ballTracers.clear();
+        pathMeshes.clear();
+        pathUpdateTimer = 0.0f;
     }
 }
 
@@ -991,3 +1030,41 @@ void UpdateBall(Mesh &ball, Mesh &Terrain, float deltaTIme)
         ball.velocity.y = 0.0f; //TODO: adjust later maybe idk
     }
 }
+
+void UpdateBallTracers() {
+    // Update timer
+    pathUpdateTimer += deltaTime;
+
+    // Check if it's time to update the paths
+    if (pathUpdateTimer >= PATH_UPDATE_INTERVAL) {
+        pathUpdateTimer = 0.0f;  // Reset timer
+
+        // Make sure we have a tracer for each ball
+        while (ballTracers.size() < rollingBalls.size()) {
+            ballTracers.emplace_back(3);  // Create new B-spline tracer with degree 3
+        }
+
+        // Make sure we have a path mesh for each ball
+        while (pathMeshes.size() < rollingBalls.size()) {
+            pathMeshes.emplace_back();
+        }
+
+        // Update each ball's tracer
+        for (size_t i = 0; i < rollingBalls.size(); i++) {
+            // Add current ball position to its tracer
+            ballTracers[i].AddPoint(rollingBalls[i]->globalPosition);
+
+            // Limit the number of points (optional)
+            const size_t MAX_POINTS = 20;
+            if (ballTracers[i].controlPoints.size() > MAX_POINTS) {
+                ballTracers[i].controlPoints.erase(ballTracers[i].controlPoints.begin());
+            }
+
+            // Update the visual path mesh if we have enough points
+            if (ballTracers[i].controlPoints.size() >= 4) {  // Need at least 4 points for a cubic B-spline
+                pathMeshes[i] = ballTracers[i].CreatePathMesh(0.05f, colors.blue);  // 0.05f is path thickness
+            }
+        }
+    }
+}
+
