@@ -147,3 +147,43 @@ float TerrainGrid::GetTerrainHeight(glm::vec3& position, TerrainGrid& grid,
 
     return highestPoint;
 }
+
+glm::vec3 TerrainGrid::GetTerrainNormal(glm::vec3& position, TerrainGrid& grid,
+    std::vector<Vertex>& vertices, std::vector<unsigned int>& indices)
+{
+    auto triangles = grid.getTrianglesInCell(position);
+
+    //Default normal
+    if (triangles.empty()) {
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+
+    //Find triangle
+    for (size_t triIndex : triangles) {
+        size_t i0 = indices[triIndex * 3];
+        size_t i1 = indices[triIndex * 3 + 1];
+        size_t i2 = indices[triIndex * 3 + 2];
+
+        const glm::vec3& v0 = vertices[i0].Position;
+        const glm::vec3& v1 = vertices[i1].Position;
+        const glm::vec3& v2 = vertices[i2].Position;
+
+        float height = terrainMath.barycentricCoordinates(v0, v1, v2, position);
+
+        if (height != -1) {
+
+            glm::vec3 edge1 = v1 - v0;
+            glm::vec3 edge2 = v2 - v0;
+            glm::vec3 normal = glm::normalize(glm::cross(edge1, edge2));
+
+
+            if (normal.y < 0) {
+                normal = -normal;
+            }
+
+            return normal;
+        }
+    }
+
+    return glm::vec3(0.0f, 1.0f, 0.0f);
+}

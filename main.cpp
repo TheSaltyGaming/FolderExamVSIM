@@ -380,7 +380,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
         ballTracers[0].Update(deltaTime, rollingBall);
         pathMeshes[0].vertices = ballTracers[0].GetSplinePoints();
-        std::cout << "Path size: " << pathMeshes[0].vertices.size() << std::endl;
 
         pathMeshes[0].Setup();
 
@@ -795,7 +794,7 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
     {
         rollingBall.globalPosition = MainCamera.cameraPos;
-        rollingBall.velocity = glm::vec3(0.0f, 0.f, -3.f);
+        rollingBall.velocity = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)) * 5.0f;
 
         for (auto& tracer : ballTracers)
         {
@@ -807,10 +806,10 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
     {
         rollingBall2.globalPosition = MainCamera.cameraPos;
-        rollingBall2.velocity = glm::vec3(0.5f, 0.f, -5.5f);
+        rollingBall2.velocity = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)) * 7.5f;
         for (auto& tracer : ballTracers)
         {
-            tracer.Clear();
+            //tracer.Clear();
         }
 
         pathUpdateTimer = 0.0f;

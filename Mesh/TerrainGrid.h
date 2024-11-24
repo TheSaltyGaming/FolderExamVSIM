@@ -37,4 +37,7 @@ public:
     // Gets the terrain height at a given position
     float GetTerrainHeight(glm::vec3& position, TerrainGrid& grid,
                           std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
+
+    glm::vec3 GetTerrainNormal(glm::vec3& position, TerrainGrid& grid,
+    std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
 };

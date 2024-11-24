@@ -1,8 +1,7 @@
 #include "BSplineTracer.h"
 #include <iostream>
 
-// Define the maximum number of points to track
-const size_t MAX_POINTS = 250;
+const int MAX_POINTS = 250;
 
 void BSplineTracer::Update(float deltaTime, Mesh &mesh) {
     accumulatedTime += deltaTime;
@@ -12,20 +11,20 @@ void BSplineTracer::Update(float deltaTime, Mesh &mesh) {
         newPoint.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
         newPoint.Color = glm::vec3(1.0f, 0.0f, 0.0f);
         
-        // Add the new point to the points vector
+
         points.push_back(newPoint);
-        std::cout << "Added point. Total points: " << points.size() << std::endl;
-        
-        // If we've exceeded the maximum number of points, remove the oldest one
+        //std::cout << "Added point. Total points: " << points.size() << std::endl;
+
+
         if (points.size() > MAX_POINTS) {
             points.erase(points.begin());
-            std::cout << "Removed oldest point. Total points: " << points.size() << std::endl;
+            //std::cout << "Removed oldest point. Total points: " << points.size() << std::endl;
         }
-        
+
         accumulatedTime = 0.0f;
 
-        // Only calculate the spline if we have enough points
-        if (points.size() >= 4) { // Ensure at least the minimum required points for a B-spline of degree 3
+        //Only calculate if we have enough points
+        if (points.size() >= 4) {
             CalculateSpline();
         }
     }
@@ -50,10 +49,9 @@ float BSplineTracer::BasisFunction(int i, int k, float t, const std::vector<floa
         // Base case
         if (k == 1) {
             return (t >= knots[i] && t < knots[i + 1]) ? 1.0f : 0.0f;
-            // Changed from <= to < to avoid overlapping
+
         }
 
-        // Recursive case with safe division
         float d1 = knots[i + k - 1] - knots[i];
         float d2 = knots[i + k] - knots[i + 1];
         float c1 = (d1 > 1e-6f) ? ((t - knots[i]) / d1) : 0.0f;
@@ -67,54 +65,49 @@ float BSplineTracer::BasisFunction(int i, int k, float t, const std::vector<floa
 }
 
 void BSplineTracer::CalculateSpline() {
-    try {
-        if (points.size() < 4) { // Ensure at least the minimum required points
-            std::cout << "Not enough points for spline calculation" << std::endl;
-            return;
-        }
-
-        splinePoints.clear();
-
-        // Generate uniform knot vector
-        std::vector<float> knots;
-        const int degree = 3; // Assuming degree is 3 for a cubic B-spline
-        const int numKnots = points.size() + degree + 1;
-        std::cout << "Generating knot vector. Points: " << points.size() 
-                  << " Degree: " << degree << " Total knots needed: " << numKnots << std::endl;
-
-        for (int i = 0; i < numKnots; i++) {
-            float knot = static_cast<float>(i) / (numKnots - 1);
-            knots.push_back(knot);
-        }
-
-        std::cout << "Generated " << knots.size() << " knots" << std::endl;
-
-        // Calculate spline points
-        const float step = 0.01f; // Define step size for spline calculation
-        for (float t = 0.0f; t <= 1.0f; t += step) {
-            Vertex splinePoint;
-            splinePoint.Position = glm::vec3(0.0f);
-            splinePoint.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
-            splinePoint.Color = glm::vec3(0.0f, 1.0f, 0.0f);
-
-            float sum = 0.0f;
-            for (int i = 0; i < points.size(); i++) {
-                float basis = BasisFunction(i, degree + 1, t, knots);
-                sum += basis;
-                splinePoint.Position += points[i].Position * basis;
-            }
-
-            // Normalize if necessary
-            if (sum > 1e-6f) {
-                splinePoint.Position /= sum;
-            }
-
-            splinePoints.push_back(splinePoint);
-        }
-
-        std::cout << "Generated " << splinePoints.size() << " spline points" << std::endl;
+    if (points.size() < 4) { // Ensure at least the minimum required points
+        std::cout << "Not enough points for spline calculation" << std::endl;
+        return;
     }
-    catch (const std::exception& e) {
-        std::cout << "Exception in CalculateSpline: " << e.what() << std::endl;
+
+    splinePoints.clear();
+
+    // Generate uniform knot vector
+    std::vector<float> knots;
+    const int degree = 3; // Assuming degree is 3 for a cubic B-spline
+    const int numKnots = points.size() + degree + 1;
+    //std::cout << "Generating knot vector. Points: " << points.size()
+              //<< " Degree: " << degree << " Total knots needed: " << numKnots << std::endl;
+
+    for (int i = 0; i < numKnots; i++) {
+        float knot = static_cast<float>(i) / (numKnots - 1);
+        knots.push_back(knot);
     }
+
+    //std::cout << "Generated " << knots.size() << " knots" << std::endl;
+
+    // Calculate spline points
+    const float step = 0.01f; // Define step size for spline calculation
+    for (float t = 0.0f; t <= 1.0f; t += step) {
+        Vertex splinePoint;
+        splinePoint.Position = glm::vec3(0.0f);
+        splinePoint.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+        splinePoint.Color = glm::vec3(0.0f, 1.0f, 0.0f);
+
+        float sum = 0.0f;
+        for (int i = 0; i < points.size(); i++) {
+            float basis = BasisFunction(i, degree + 1, t, knots);
+            sum += basis;
+            splinePoint.Position += points[i].Position * basis;
+        }
+
+        // Normalize if necessary
+        if (sum > 1e-6f) {
+            splinePoint.Position /= sum;
+        }
+
+        splinePoints.push_back(splinePoint);
+    }
+
+    //std::cout << "Generated " << splinePoints.size() << " spline points" << std::endl;
 }
