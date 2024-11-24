@@ -293,6 +293,7 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
     //turn up pointsize
     glPointSize(10.0f);
+    glLineWidth(10.f);
 
     // render loop
     // -----------

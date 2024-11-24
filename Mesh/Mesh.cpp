@@ -307,7 +307,7 @@ void Mesh::Draw(unsigned shaderProgram)
     glBindVertexArray(VAO);
 
     if (indices.size() == 0) {
-        glDrawArrays(GL_POINTS, 0, vertices.size());
+        glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
     }
 
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);

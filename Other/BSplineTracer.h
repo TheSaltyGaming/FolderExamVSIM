@@ -31,8 +31,9 @@ public:
 
 private:
     std::vector<Vertex> points;
-    float accumulatedTime;
-    float recordInterval = 0.1f;
+    std::vector<Vertex> splinePoints;  // Store calculated spline points
+    float accumulatedTime = 0.0f;
+    float recordInterval;
 
 
 
