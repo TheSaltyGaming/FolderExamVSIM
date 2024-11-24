@@ -21,11 +21,27 @@ public:
 
     void Clear();
 
-    const std::vector<Vertex>& GetPoints() const { return points; }
 
-    void SetRecordInterval(float interval) {
-        recordInterval = interval;
+    std::vector<Vertex> &GetSplinePoints()
+    {
+        //remove the last point in the splinePoints vector if it is between 0.0f and 0.1f on the xyz
+        if (splinePoints.size() > 0) {
+            if (splinePoints.back().Position.x < 0.1f && splinePoints.back().Position.y < 0.1f && splinePoints.back().Position.z < 0.1f) {
+                splinePoints.pop_back();
+            }
+            //remove the first point in the splinePoints vector if it is between 0.0f and 0.1f on the xyz
+            if (splinePoints.front().Position.x < 0.1f && splinePoints.front().Position.y < 0.1f && splinePoints.front().Position.z < 0.1f) {
+                splinePoints.erase(splinePoints.begin());
+            }
+        }
+        return splinePoints;
     }
+
+
+    const std::vector<Vertex>& GetControlPoints() const {
+        return points;
+    }
+
 
 
 
@@ -33,7 +49,16 @@ private:
     std::vector<Vertex> points;
     std::vector<Vertex> splinePoints;  // Store calculated spline points
     float accumulatedTime = 0.0f;
-    float recordInterval;
+    float recordInterval = 0.4f;
+
+    // B-spline parameters
+    const int degree = 3;  // Cubic B-spline
+    const float step = 0.01f;  // Parameter step size
+
+    float BasisFunction(int i, int k, float t, const std::vector<float>& knots);
+
+    void CalculateSpline();
+
 
 
 

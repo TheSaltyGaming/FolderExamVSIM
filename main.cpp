@@ -379,8 +379,9 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         physics.UpdateBall(rollingBalls, surfaceMesh, deltaTime, terrainGrid);
 
         ballTracers[0].Update(deltaTime, rollingBall);
-        pathMeshes[0].vertices = ballTracers[0].GetPoints();
+        pathMeshes[0].vertices = ballTracers[0].GetSplinePoints();
         std::cout << "Path size: " << pathMeshes[0].vertices.size() << std::endl;
+
         pathMeshes[0].Setup();
 
 
@@ -475,11 +476,11 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
     std::vector<unsigned int> surfaceIndices;
 
 #pragma region colorGradient
+    // Define base and highlight colors
+    glm::vec3 baseColor = glm::vec3(0.5f, 0.5f, 0.5f);
+    glm::vec3 redColor = glm::vec3(1.0f, 0.0f, 0.0f);
 
-    // Define a gray color as base
-    glm::vec3 baseColor = colors.grey;
-
-    // Initialize the Perlin noise generator
+    // Initialize the Perlin noise generator with a seed
     siv::PerlinNoise perlin{ 12345 };
 
     // Parameters for Perlin noise
@@ -490,20 +491,28 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
     for (const auto& point : points) {
         Vertex vertex = point;
 
+        // Compute Perlin noise value for this vertex
         float noiseValue = perlin.octave2D_01(
             point.Position.x * noiseScale,
             point.Position.z * noiseScale,
             noiseOctaves
         );
 
-
+        // Calculate color intensity based on noise
         float colorIntensity = glm::clamp(0.5f + noiseIntensity * (noiseValue - 0.5f), 0.0f, 1.0f);
-        vertex.Color = baseColor * 2.f * colorIntensity;
 
+        if (vertex.Position.y < 2.0f) {
+            vertex.Color = redColor; // Set color to red
+        } else {
+            vertex.Color = baseColor * 2.f * colorIntensity; // Existing color logic
+        }
+
+        // Initialize normals
         vertex.Normal = glm::vec3(0.0f);
+
+        // Add the processed vertex to the surface vertices
         surfaceVertices.push_back(vertex);
     }
-
 #pragma endregion
 
 
@@ -547,7 +556,6 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
 
     bsplineSurface.globalPosition = glm::vec3(0.0f, 4.0f, 0.0f);
 
-    Ball1Tracer = BSplineTracer();
     ballTracers.push_back(Ball1Tracer);
 
     Mesh pathMesh = Mesh();

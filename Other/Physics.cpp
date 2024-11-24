@@ -24,29 +24,45 @@ void Physics::UpdateBall(std::vector<Mesh *> &balls, Mesh &terrain, float deltaT
     }
 }
 
-void Physics::UpdateBallPhysics(Mesh& ball, Mesh &terrain, TerrainGrid &grid, float deltaTime)
-{
+void Physics::UpdateBallPhysics(Mesh& ball, Mesh &terrain, TerrainGrid &grid, float deltaTime) {
     glm::vec3 oldPosition = ball.globalPosition;
+
+    // Apply gravity to the y-velocity
     ball.velocity.y += GRAVITY * deltaTime;
+
+    // Update position based on velocity
     glm::vec3 newPosition = oldPosition + ball.velocity * deltaTime;
 
+    // Get the terrain height at the new position
     float terrainHeight = grid.GetTerrainHeight(newPosition, grid, terrain.vertices, terrain.indices);
 
-    if (terrainHeight != -1) {
+    if (terrainHeight != -1) { // Assuming -1 signifies no terrain detected
         float ballRadius = ball.Radius * ball.globalScale.x;
         float targetHeight = terrainHeight + ballRadius;
 
-        if (newPosition.y < targetHeight) {
+        if (newPosition.y < targetHeight) { // Collision detected
             float penetrationDepth = targetHeight - newPosition.y;
-            newPosition.y = targetHeight;
+            newPosition.y = targetHeight; // Correct the position to be on the terrain
 
-            if (ball.velocity.y < 0) {
+            if (ball.velocity.y < 0) { // If moving downward
+                // Reverse and dampen the y-velocity to simulate a bounce
                 ball.velocity.y = -ball.velocity.y * 0.5f;
-                ball.velocity.x *= 0.98f;
-                ball.velocity.z *= 0.98f;
+
+                // Determine the appropriate friction based on y-position
+                float friction;
+                if (newPosition.y < Y_THRESHOLD) {
+                    friction = LOWER_BOUND_FRICTION; // High friction when y < 10
+                } else {
+                    friction = DEFAULT_FRICTION; // Low friction otherwise
+                }
+
+                // Apply friction to the horizontal velocities
+                ball.velocity.x *= friction;
+                ball.velocity.z *= friction;
             }
         }
     }
 
+    // Update the ball's global position
     ball.globalPosition = newPosition;
 }
