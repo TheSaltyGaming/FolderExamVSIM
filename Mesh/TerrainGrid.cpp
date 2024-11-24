@@ -101,7 +101,7 @@ std::vector<size_t> TerrainGrid::getTrianglesInCell(const glm::vec3& position)
         return result;
     }
 
-    std::cout << "Checking grid cell (" << x << ", " << y << ")\n";
+    //std::cout << "Checking grid cell (" << x << ", " << y << ")\n";
 
     // Get triangles from current cell
     const auto& cell = grid[y * gridWidth + x];
@@ -118,7 +118,7 @@ std::vector<size_t> TerrainGrid::getTrianglesInCell(const glm::vec3& position)
         }
     }
 
-    std::cout << "Found " << result.size() << " potential triangles in cell\n";
+    //std::cout << "Found " << result.size() << " potential triangles in cell\n";
     return result;
 }
 

@@ -7,39 +7,36 @@
 #include <vector>
 #include <glm/vec3.hpp>
 
+#include "BSplineTracer.h"
+#include "BSplineTracer.h"
 #include "Mesh.h"
 
 
 class BSplineTracer {
 public:
 
-    BSplineTracer(int degree = 3);
+    BSplineTracer() : accumulatedTime(0.0f) {};
 
-    // Add a position to the control points
-    void AddPoint(const glm::vec3& point);
+    void Update(float deltaTime, Mesh &mesh);
 
-    // Get a point on the curve at parameter t (0 <= t <= 1)
-    glm::vec3 GetPoint(float t) const;
-
-    // Generate a mesh representing the path
-    Mesh CreatePathMesh(float thickness = 0.1f, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f));
-
-    // Clear all control points
     void Clear();
 
-    std::vector<glm::vec3> controlPoints;
+    const std::vector<Vertex>& GetPoints() const { return points; }
+
+    void SetRecordInterval(float interval) {
+        recordInterval = interval;
+    }
+
+
+
 private:
+    std::vector<Vertex> points;
+    float accumulatedTime;
+    float recordInterval = 0.1f;
 
-    int degree;
 
-    // Calculate basis functions
-    float BSplineBasis(int i, int k, float t) const;
 
-    // Generate knot vector based on control points
-    std::vector<float> GenerateKnotVector() const;
 
-    // Helper function to find knot span
-    int FindKnotSpan(float t, const std::vector<float>& knots) const;
 
 };
 

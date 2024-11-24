@@ -89,6 +89,8 @@ Mesh CameraMesh;
 Mesh rollingBall;
 Mesh rollingBall2;
 
+BSplineTracer Ball1Tracer;
+
 TerrainGrid terrainGrid;
 
 
@@ -289,6 +291,9 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    //turn up pointsize
+    glPointSize(10.0f);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -371,6 +376,13 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         }
 
         physics.UpdateBall(rollingBalls, surfaceMesh, deltaTime, terrainGrid);
+
+        ballTracers[0].Update(deltaTime, rollingBall);
+        pathMeshes[0].vertices = ballTracers[0].GetPoints();
+        std::cout << "Path size: " << pathMeshes[0].vertices.size() << std::endl;
+        pathMeshes[0].Setup();
+
+
 
         //physics.UpdateBallPhysics(rollingBall, surfaceMesh, deltaTime);
 
@@ -533,6 +545,13 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
     bspline.CreateBspline(bsplineSurface);
 
     bsplineSurface.globalPosition = glm::vec3(0.0f, 4.0f, 0.0f);
+
+    Ball1Tracer = BSplineTracer();
+    ballTracers.push_back(Ball1Tracer);
+
+    Mesh pathMesh = Mesh();
+    pathMesh.Setup();
+    pathMeshes.push_back(pathMesh);
 }
 
 void SetupMeshes()
@@ -573,16 +592,6 @@ void SetupMeshes()
 
     rollingBalls.push_back(&rollingBall);
     rollingBalls.push_back(&rollingBall2);
-
-    ballTracers.resize(rollingBalls.size());
-
-    ballTracers.clear();
-    pathMeshes.clear();
-    for (size_t i = 0; i < rollingBalls.size(); i++) {
-        ballTracers.emplace_back(3); // degree 3 B-spline
-        pathMeshes.emplace_back();
-    }
-
 
 #pragma region OtherMeshes
 
@@ -779,17 +788,22 @@ void processInput(GLFWwindow* window)
         rollingBall.globalPosition = MainCamera.cameraPos;
         rollingBall.velocity = glm::vec3(0.0f, 0.f, -3.f);
 
-        ballTracers.clear();
-        pathMeshes.clear();
+        for (auto& tracer : ballTracers)
+        {
+            tracer.Clear();
+        }
+
         pathUpdateTimer = 0.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
     {
         rollingBall2.globalPosition = MainCamera.cameraPos;
         rollingBall2.velocity = glm::vec3(0.5f, 0.f, -5.5f);
+        for (auto& tracer : ballTracers)
+        {
+            tracer.Clear();
+        }
 
-        ballTracers.clear();
-        pathMeshes.clear();
         pathUpdateTimer = 0.0f;
     }
 }
@@ -1028,43 +1042,6 @@ void UpdateBall(Mesh &ball, Mesh &Terrain, float deltaTIme)
     if (ball.globalPosition.y < mappedPos.y) {
         ball.globalPosition.y = mappedPos.y;
         ball.velocity.y = 0.0f; //TODO: adjust later maybe idk
-    }
-}
-
-void UpdateBallTracers() {
-    // Update timer
-    pathUpdateTimer += deltaTime;
-
-    // Check if it's time to update the paths
-    if (pathUpdateTimer >= PATH_UPDATE_INTERVAL) {
-        pathUpdateTimer = 0.0f;  // Reset timer
-
-        // Make sure we have a tracer for each ball
-        while (ballTracers.size() < rollingBalls.size()) {
-            ballTracers.emplace_back(3);  // Create new B-spline tracer with degree 3
-        }
-
-        // Make sure we have a path mesh for each ball
-        while (pathMeshes.size() < rollingBalls.size()) {
-            pathMeshes.emplace_back();
-        }
-
-        // Update each ball's tracer
-        for (size_t i = 0; i < rollingBalls.size(); i++) {
-            // Add current ball position to its tracer
-            ballTracers[i].AddPoint(rollingBalls[i]->globalPosition);
-
-            // Limit the number of points (optional)
-            const size_t MAX_POINTS = 20;
-            if (ballTracers[i].controlPoints.size() > MAX_POINTS) {
-                ballTracers[i].controlPoints.erase(ballTracers[i].controlPoints.begin());
-            }
-
-            // Update the visual path mesh if we have enough points
-            if (ballTracers[i].controlPoints.size() >= 4) {  // Need at least 4 points for a cubic B-spline
-                pathMeshes[i] = ballTracers[i].CreatePathMesh(0.05f, colors.blue);  // 0.05f is path thickness
-            }
-        }
     }
 }
 
