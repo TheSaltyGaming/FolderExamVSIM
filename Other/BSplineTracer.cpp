@@ -1,7 +1,7 @@
 #include "BSplineTracer.h"
 #include <iostream>
 
-const int MAX_POINTS = 250;
+const int MAX_POINTS = 450;
 
 void BSplineTracer::Update(float deltaTime, Mesh &mesh) {
     accumulatedTime += deltaTime;
@@ -10,7 +10,7 @@ void BSplineTracer::Update(float deltaTime, Mesh &mesh) {
         newPoint.Position = mesh.globalPosition;
         newPoint.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
         newPoint.Color = glm::vec3(1.0f, 0.0f, 0.0f);
-        
+
 
         points.push_back(newPoint);
         //std::cout << "Added point. Total points: " << points.size() << std::endl;

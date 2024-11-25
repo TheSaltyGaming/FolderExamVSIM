@@ -90,6 +90,10 @@ Mesh rollingBall;
 Mesh rollingBall2;
 
 BSplineTracer Ball1Tracer;
+BSplineTracer Ball2Tracer;
+
+Mesh Ball1PathMesh;
+Mesh Ball2PathMesh;
 
 TerrainGrid terrainGrid;
 
@@ -189,7 +193,11 @@ void EntitySetup()
     }
 
 
-    int SphereCount = 100;
+    int SphereCount = 25;
+
+
+    ballTracers.clear();
+    pathMeshes.clear();
 
     for (int i = 0; i < SphereCount; ++i) {
         // Create new entity for the sphere
@@ -210,6 +218,15 @@ void EntitySetup()
 
         componentManager.AddComponent<TransformComponent>(sphereEntity->GetId(), sphereTransformComponent);
         componentManager.AddComponent<Mesh>(sphereEntity->GetId(), sphereMeshComponent);
+
+        // Create and set up tracer for this sphere
+        BSplineTracer tracer;  // Create new tracer
+        ballTracers.push_back(tracer);  // Store the tracer
+
+        // Create and set up path mesh for the tracer
+        Mesh pathMesh;
+        pathMesh.Setup();
+        pathMeshes.push_back(pathMesh);
 
         // Add sphere entity to the enemyEntities vector
         enemyEntities.push_back(sphereEntity);
@@ -253,8 +270,76 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
         pathMesh.Draw(ShaderProgram.ID);
     }
 
+    Ball1PathMesh.Draw(ShaderProgram.ID);
+    Ball2PathMesh.Draw(ShaderProgram.ID);
 
 
+
+}
+
+void EntityPhysics()
+{
+#pragma region OldHoming code
+    for (auto& entity : enemyEntities)
+    {
+        auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
+        auto sphereTransformComponent = componentManager.GetComponent<TransformComponent>(entity->GetId());
+
+        if (sphereMeshComponent && sphereTransformComponent)
+        {
+            sphereMeshComponent->Physics(deltaTime);
+
+            // Hoaming towards player
+            if (glm::distance(PlayerMesh.globalPosition, sphereTransformComponent->position) < 3)
+            {
+                lastPos = PlayerMesh.globalPosition;
+
+                glm::vec3 direction = glm::normalize(PlayerMesh.globalPosition - sphereTransformComponent->position);
+                sphereMeshComponent->velocity += direction * 0.01f;
+            }
+            // Hoaming towards last position
+            else if (glm::distance(lastPos, sphereTransformComponent->position) < 3)
+            {
+                glm::vec3 direction = glm::normalize(lastPos - sphereTransformComponent->position);
+                sphereMeshComponent->velocity += direction * 0.01f;
+            }
+            else
+            {
+                sphereMeshComponent->velocity = glm::vec3(0.f);
+            }
+
+            // Speed cap
+            if (glm::length(sphereMeshComponent->velocity) > 0.5f)
+            {
+                sphereMeshComponent->velocity = glm::normalize(sphereMeshComponent->velocity) * 0.5f;
+            }
+        }
+    }
+#pragma endregion
+
+    for (auto& entity : enemyEntities)
+    {
+        auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
+        auto sphereTransformComponent = componentManager.GetComponent<TransformComponent>(entity->GetId());
+
+        if (sphereMeshComponent && sphereTransformComponent)
+        {
+            sphereMeshComponent->Physics(deltaTime);
+
+            // Assign random velocity
+            sphereMeshComponent->velocity = glm::vec3(
+                static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f - 1.0f,
+                static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f - 1.0f,
+                static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0f - 1.0f
+            );
+
+            // Speed cap
+            if (glm::length(sphereMeshComponent->velocity) > 0.5f)
+            {
+                sphereMeshComponent->velocity = glm::normalize(sphereMeshComponent->velocity) * 1.5f;
+            }
+        }
+    }
 }
 
 void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
@@ -293,7 +378,7 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
     //turn up pointsize
     glPointSize(10.0f);
-    glLineWidth(10.f);
+    glLineWidth(5.f);
 
     // render loop
     // -----------
@@ -340,48 +425,34 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         transformComponent->position = PlayerMesh.globalPosition;
 
         //for every sphere do physics
-        for (auto& entity : enemyEntities)
-        {
-            auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
-            auto sphereTransformComponent = componentManager.GetComponent<TransformComponent>(entity->GetId());
-
-            if (sphereMeshComponent && sphereTransformComponent)
-            {
-                sphereMeshComponent->Physics(deltaTime);
-
-                // Hoaming towards player
-                if (glm::distance(PlayerMesh.globalPosition, sphereTransformComponent->position) < 3)
-                {
-                    lastPos = PlayerMesh.globalPosition;
-
-                    glm::vec3 direction = glm::normalize(PlayerMesh.globalPosition - sphereTransformComponent->position);
-                    sphereMeshComponent->velocity += direction * 0.01f;
-                }
-                // Hoaming towards last position
-                else if (glm::distance(lastPos, sphereTransformComponent->position) < 3)
-                {
-                    glm::vec3 direction = glm::normalize(lastPos - sphereTransformComponent->position);
-                    sphereMeshComponent->velocity += direction * 0.01f;
-                }
-                else
-                {
-                    sphereMeshComponent->velocity = glm::vec3(0.f);
-                }
-
-                // Speed cap
-                if (glm::length(sphereMeshComponent->velocity) > 0.5f)
-                {
-                    sphereMeshComponent->velocity = glm::normalize(sphereMeshComponent->velocity) * 0.5f;
-                }
-            }
-        }
+        //EntityPhysics();
 
         physics.UpdateBall(rollingBalls, surfaceMesh, deltaTime, terrainGrid);
 
-        ballTracers[0].Update(deltaTime, rollingBall);
-        pathMeshes[0].vertices = ballTracers[0].GetSplinePoints();
+        // ballTracers[0].Update(deltaTime, rollingBall);
+        // pathMeshes[0].vertices = ballTracers[0].GetSplinePoints();
+        //
+        // pathMeshes[0].Setup();
 
-        pathMeshes[0].Setup();
+        for (size_t i = 0; i < enemyEntities.size(); ++i) {
+            // Get the mesh component for this entity
+            auto meshComponent = componentManager.GetComponent<Mesh>(enemyEntities[i]->GetId());
+
+            // Update the tracer for this entity
+            ballTracers[i].Update(deltaTime, *meshComponent);
+
+            pathMeshes[i].vertices.clear();
+            pathMeshes[i].vertices = ballTracers[i].GetSplinePoints();
+            pathMeshes[i].Setup();
+        }
+
+        Ball1Tracer.Update(deltaTime, rollingBall);
+        Ball2Tracer.Update(deltaTime, rollingBall2);
+
+        Ball1PathMesh.vertices = Ball1Tracer.GetSplinePoints();
+        Ball2PathMesh.vertices = Ball2Tracer.GetSplinePoints();
+        Ball1PathMesh.Setup();
+        Ball2PathMesh.Setup();
 
 
 
@@ -440,7 +511,7 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
         renderSystem.Update(deltaTime);
 
-        CollisionChecking();
+        //CollisionChecking();
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -555,11 +626,14 @@ void Triangulate_Terrain(std::vector<Vertex> &points)
 
     bsplineSurface.globalPosition = glm::vec3(0.0f, 4.0f, 0.0f);
 
-    ballTracers.push_back(Ball1Tracer);
+    // ballTracers.push_back(Ball1Tracer);
+    //
+    // Mesh pathMesh = Mesh();
+    // pathMesh.Setup();
+    // pathMeshes.push_back(pathMesh);
 
-    Mesh pathMesh = Mesh();
-    pathMesh.Setup();
-    pathMeshes.push_back(pathMesh);
+    Ball1PathMesh.Setup();
+    Ball2PathMesh.Setup();
 }
 
 void SetupMeshes()
@@ -728,19 +802,14 @@ void processInput(GLFWwindow* window)
     }
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
     {
-        //make all spheres move
-        for (auto ballsphere : sphereMeshes)
-        {
-            ballsphere->velocity = glm::vec3(math.RandomVec3(-2, 2).x, 0.0f, math.RandomVec3(-2, 2).z);
+        EntityPhysics();
 
-        }
     }
     if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
     {
-        //stop all velocity
-        for (Mesh* sphere : sphereMeshes)
+        for (auto& tracer : ballTracers)
         {
-            sphere->velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+            tracer.Clear();
         }
     }
 
@@ -796,10 +865,7 @@ void processInput(GLFWwindow* window)
         rollingBall.globalPosition = MainCamera.cameraPos;
         rollingBall.velocity = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)) * 5.0f;
 
-        for (auto& tracer : ballTracers)
-        {
-            tracer.Clear();
-        }
+        Ball1Tracer.Clear();
 
         pathUpdateTimer = 0.0f;
     }
@@ -807,10 +873,9 @@ void processInput(GLFWwindow* window)
     {
         rollingBall2.globalPosition = MainCamera.cameraPos;
         rollingBall2.velocity = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)) * 7.5f;
-        for (auto& tracer : ballTracers)
-        {
-            //tracer.Clear();
-        }
+
+        Ball2Tracer.Clear();
+
 
         pathUpdateTimer = 0.0f;
     }
