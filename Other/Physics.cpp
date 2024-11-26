@@ -84,7 +84,7 @@ void Physics::UpdateBallPhysics(Mesh& ball, Mesh& terrain, TerrainGrid& grid, fl
 
             // Simple bounce
             if (ball.velocity.y < 0) {
-                ball.velocity.y = -ball.velocity.y * 0.5f;  // 50% energy loss
+                ball.velocity.y = -ball.velocity.y * 0.4f;
             }
         }
     }

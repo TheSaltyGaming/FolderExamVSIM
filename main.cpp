@@ -1,115 +1,51 @@
+
 #include <algorithm>
 #include <bitset>
-#include <delaunator.hpp>
-
-#include "Shader.h"
-#include "ShaderFileLoader.h"
 #include <iostream>
 #include <map>
 #include <set>
+#include <vector>
+#include <memory>
+#include <string>
+
+#include <delaunator.hpp>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/mat4x3.hpp>
 
-#include "Other/Camera.h"
-#include "Other/Collision.h"
-#include "EntityManager.h"
-#include "Math.h"
+#include "Shader.h"
+#include "ShaderFileLoader.h"
 #include "RenderSystem.h"
 #include "Mesh/Mesh.h"
-#include "glm/mat4x3.hpp"
+
+#include "EntityManager.h"
+#include "Math.h"
 #include "Components/TransformComponent.h"
 #include "PerlinNoise.hpp"
 #include "BsplineFunction.h"
 #include "TerrainGrid.h"
+
+#include "Other/Camera.h"
+#include "Other/Collision.h"
 #include "Other/BSplineTracer.h"
 #include "Other/Physics.h"
 
+// Function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-
 void CameraView(std::vector<unsigned> shaderPrograms, glm::mat4 trans, glm::mat4 projection);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void DrawObjects(unsigned VAO, Shader ShaderProgram);
-
-void CollisionChecking();
-
 void SetupBsplineSurface();
-
 void UpdateBallTracers();
-
-void Attack();
 glm::vec3 RandomColor();
-
 void UpdateBall(Mesh &Ball, Mesh &Terrain, float deltaTIme);
-
-ComponentManager componentManager;
-EntityManager entityManager = EntityManager(componentManager);
-
-RenderSystem renderSystem = RenderSystem(componentManager, entityManager);
-
-Physics physics;
-
-
 void EntitySetup();
 
-std::unique_ptr<Entity> playerEntity;
-
-std::vector<std::shared_ptr<Entity>> healthPotions;
-
-std::vector<std::shared_ptr<Entity>> enemyEntities;
-
-std::vector<Mesh*> sphereMeshes;
-
-std::vector<Mesh*> rollingBalls;
-
-std::vector<BSplineTracer> ballTracers;
-std::vector<Mesh> pathMeshes;
-
-float pathUpdateTimer = 0.0f;
-const float PATH_UPDATE_INTERVAL = 0.1f;
-
-Mesh PlayerMesh;
-
-Mesh LightCube;
-
-Math math;
-Collision collision;
-
-Mesh PointCloud;
-
-Mesh surfaceMesh;
-
-Mesh bsplineSurface;
-
-
-Mesh CameraMesh;
-
-Mesh rollingBall;
-Mesh rollingBall2;
-
-BSplineTracer Ball1Tracer;
-BSplineTracer Ball2Tracer;
-
-Mesh Ball1PathMesh;
-Mesh Ball2PathMesh;
-
-TerrainGrid terrainGrid;
-
-
-int lives = 6;
-
-glm::vec3 lastPos = glm::vec3(999999.f);
-
-
-// settings
-
- unsigned int SCR_WIDTH = 1280;
- unsigned int SCR_HEIGHT = 720;
-
-struct colorStruct
-{
+// Color
+struct colorStruct {
     glm::vec3 red = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 green = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 blue = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -125,28 +61,71 @@ struct colorStruct
 
 colorStruct colors;
 
-///Delta time variables
-///--------------------
-float deltaTime = 0.0f;	// Time between current frame and last frame
-float lastFrame = 0.0f; // Time of last frame
+// Constants
+unsigned int SCR_WIDTH = 1280;
+unsigned int SCR_HEIGHT = 720;
+const float PATH_UPDATE_INTERVAL = 0.1f;
 
-///Mouse Input Variables
-///---------------------
+// Delta time variables
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+// Mouse Input Variables
 bool firstMouse = true;
-float lastX = SCR_WIDTH / 2.0f, lastY = SCR_HEIGHT / 2.0f;
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
 
+// Shader files
 std::string vfs = ShaderLoader::LoadShaderFromFile("Triangle.vs");
 std::string fs = ShaderLoader::LoadShaderFromFile("Triangle.vs");
 
+// Camera
 Camera MainCamera;
-
 int CameraMode = 1;
 bool firstCamera = true;
-
 glm::vec3 oldBaryCoords = glm::vec3(0.0f);
 
+// Managers
+ComponentManager componentManager;
+EntityManager entityManager = EntityManager(componentManager);
+RenderSystem renderSystem = RenderSystem(componentManager, entityManager);
+Physics physics;
 
+// Entities
+std::unique_ptr<Entity> playerEntity;
+std::vector<std::shared_ptr<Entity>> healthPotions;
+std::vector<std::shared_ptr<Entity>> enemyEntities;
+
+// Meshes
+std::vector<Mesh*> sphereMeshes;
+std::vector<Mesh*> rollingBalls;
+std::vector<Mesh> pathMeshes;
+Mesh PlayerMesh;
+Mesh LightCube;
+Mesh PointCloud;
+Mesh surfaceMesh;
+Mesh bsplineSurface;
+Mesh CameraMesh;
+Mesh rollingBall;
+Mesh rollingBall2;
+Mesh Ball1PathMesh;
+Mesh Ball2PathMesh;
+
+// BSpline Tracers
+std::vector<BSplineTracer> ballTracers;
+BSplineTracer Ball1Tracer;
+BSplineTracer Ball2Tracer;
+
+// Other components
+Math math;
+Collision collision;
+TerrainGrid terrainGrid;
+int lives = 6;
+glm::vec3 lastPos = glm::vec3(999999.f);
 std::vector<unsigned> shaderPrograms;
+
+// Timers
+float pathUpdateTimer = 0.0f;
 
 void EntitySetup()
 {
@@ -239,10 +218,6 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
     //Drawmeshes here, draw meshes (this comment is for CTRL + F search)
     ShaderProgram.use();
     glBindVertexArray(VAO);
-    // glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    // sphere_mesh.Draw(ShaderProgram.ID);
-    // sphere2Mesh.Draw(ShaderProgram.ID);
 
     //draw all meshes
     for (Mesh* sphere : sphereMeshes)
@@ -250,21 +225,16 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
         sphere->Draw(ShaderProgram.ID);
     }
 
-    //PlayerMesh.Draw(ShaderProgram.ID);
 
     //PointCloud.Draw(ShaderProgram.ID);
 
     surfaceMesh.Draw(ShaderProgram.ID);
 
-    //LightCube.Draw(ShaderProgram.ID);
-
-    //CameraMesh.Draw(ShaderProgram.ID);
 
     bsplineSurface.Draw(ShaderProgram.ID);
 
     rollingBall.Draw(ShaderProgram.ID);
     rollingBall2.Draw(ShaderProgram.ID);
-    //MainCamera.cameraPos = bsplineSurface.globalPosition;
 
     for (auto& pathMesh : pathMeshes) {
         pathMesh.Draw(ShaderProgram.ID);
@@ -377,7 +347,7 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //turn up pointsize
-    glPointSize(10.0f);
+    glPointSize(1.0f);
     glLineWidth(5.f);
 
     // render loop
@@ -446,13 +416,18 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             pathMeshes[i].Setup();
         }
 
-        Ball1Tracer.Update(deltaTime, rollingBall);
-        Ball2Tracer.Update(deltaTime, rollingBall2);
+        if (glm::length(rollingBall.velocity) > 0.1f) {
+            Ball1Tracer.Update(deltaTime, rollingBall);
+            Ball1PathMesh.vertices = Ball1Tracer.GetSplinePoints();
+            Ball1PathMesh.Setup();
+        }
 
-        Ball1PathMesh.vertices = Ball1Tracer.GetSplinePoints();
-        Ball2PathMesh.vertices = Ball2Tracer.GetSplinePoints();
-        Ball1PathMesh.Setup();
-        Ball2PathMesh.Setup();
+        if (glm::length(rollingBall2.velocity) > 0.1f) {
+            Ball2Tracer.Update(deltaTime, rollingBall2);
+            Ball2PathMesh.vertices = Ball2Tracer.GetSplinePoints();
+            Ball2PathMesh.Setup();
+        }
+
 
 
 
@@ -478,23 +453,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         {
             firstCamera = true;
 
-            // glm::vec3 cameraPos = MainCamera.cameraPos;
-            //
-            // // Map the camera position to the surface
-            // glm::vec3 mappedPosition = math.MapCameraToSurface(cameraPos, surfaceMesh);
-            //
-            // if (mappedPosition != glm::vec3(-1))
-            // {
-            //     // Check if the camera is above the surface
-            //     if (cameraPos.y > mappedPosition.y) {
-            //
-            //         float offset = 4.1f;
-            //         cameraPos.y = mappedPosition.y + offset;
-            //         std::cout << MainCamera.cameraPos.y << std::endl;
-            //         MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, cameraPos, 0.5f);
-            //         //MainCamera.cameraPos = cameraPos;
-            //     }
-            // }
         }
 
 
@@ -811,11 +769,21 @@ void processInput(GLFWwindow* window)
         {
             tracer.Clear();
         }
+
+        for (auto& entity : enemyEntities)
+        {
+            auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
+            auto sphereTransformComponent = componentManager.GetComponent<TransformComponent>(entity->GetId());
+
+            if (sphereMeshComponent && sphereTransformComponent)
+            {
+                sphereMeshComponent->velocity = glm::vec3(0.f);
+            }
+        }
     }
 
     if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
     {
-        Attack();
     }
 
 
@@ -954,100 +922,6 @@ void CameraView(std::vector<unsigned> shaderPrograms, glm::mat4 trans, glm::mat4
     }
 }
 
-void CollisionChecking()
-{
-
-    int p = 0;
-    for (int i = 0; i < enemyEntities.size(); ++i)
-    {
-        auto sphereMeshComponent1 = componentManager.GetComponent<Mesh>(enemyEntities[i]->GetId());
-
-        if (sphereMeshComponent1->markedForDeletion) break;
-
-        for (int j = p + 1; j < enemyEntities.size(); ++j)
-        {
-            auto sphereMeshComponent2 = componentManager.GetComponent<Mesh>(enemyEntities[j]->GetId());
-            collision.SphereCollision(sphereMeshComponent1.get(), sphereMeshComponent2.get());
-        }
-        p++;
-    }
-
-
-    int W = 0;
-
-
-
-    // Marking spheres for deletion
-    std::set<int> spheresToDelete;
-    auto playerMeshComponent = componentManager.GetComponent<Mesh>(playerEntity->GetId());
-    for (auto it = enemyEntities.begin(); it != enemyEntities.end();)
-    {
-        auto sphereMeshComponent = componentManager.GetComponent<Mesh>((*it)->GetId());
-        if (collision.SphereToAABBCollision(sphereMeshComponent.get(), &PlayerMesh) && !sphereMeshComponent->markedForDeletion)
-        {
-            std::cout << "Collision with player" << std::endl;
-            // Knockback
-            glm::vec3 knockbackDirection = glm::normalize(PlayerMesh.globalPosition - sphereMeshComponent->globalPosition);
-            float smoothingFactor = 0.1f; // Adjust this value to control the smoothing
-            if (CameraMode == 2) {
-                MainCamera.cameraPos = math.lerp(MainCamera.cameraPos, MainCamera.cameraPos + knockbackDirection * 0.1f, smoothingFactor);
-            } else {
-                PlayerMesh.globalPosition = math.lerp(PlayerMesh.globalPosition, PlayerMesh.globalPosition + knockbackDirection * 0.1f, smoothingFactor);
-            }
-
-            // Mark sphere for deletion
-            sphereMeshComponent->markedForDeletion = true;
-            spheresToDelete.insert((*it)->GetId());
-
-            // Remove sphere entity from the enemyEntities vector
-            it = enemyEntities.erase(it);
-
-            // Update lives and player color
-            lives--;
-
-            if (lives <= 0) {
-                std::cout << "Game Over" << std::endl;
-                playerMeshComponent->SetColor(colors.red);
-            } else if (lives <= 3) {
-                playerMeshComponent->SetColor(colors.orange);
-            } else {
-                playerMeshComponent->SetColor(colors.magenta);
-            }
-        }
-        else
-        {
-            ++it;
-        }
-    }
-
-    // Delete the marked spheres
-    for (int entityId : spheresToDelete)
-    {
-        componentManager.RemoveComponent<TransformComponent>(entityId);
-        componentManager.RemoveComponent<Mesh>(entityId);
-        entityManager.DestroyEntity(Entity(componentManager, entityId));
-    }
-
-    for (auto it = healthPotions.begin(); it != healthPotions.end();)
-    {
-        auto potionMeshComponent = componentManager.GetComponent<Mesh>((*it)->GetId());
-        if (collision.AABBCollision(&PlayerMesh, potionMeshComponent.get()))
-        {
-            std::cout << "Health potion collected" << std::endl;
-            componentManager.RemoveComponent<TransformComponent>((*it)->GetId());
-            componentManager.RemoveComponent<Mesh>((*it)->GetId());
-            //entityManager.DestroyEntity((*it)->GetId());
-            it = healthPotions.erase(it);
-            lives = 6;
-            playerMeshComponent->SetColor(colors.magenta);
-        }
-        else
-        {
-            ++it;
-        }
-    }
-}
-
 glm::vec3 RandomColor()
 {
     return glm::vec3(
@@ -1055,46 +929,6 @@ glm::vec3 RandomColor()
     (rand() % 256) / 255.0f,
     (rand() % 256) / 255.0f
 );
-}
-
-void Attack()
-{
-    float attackRadius = 1.7f;
-    float knockbackDistance = 0.8f;
-
-    for (auto& entity : enemyEntities)
-    {
-        auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
-        auto sphereTransformComponent = componentManager.GetComponent<TransformComponent>(entity->GetId());
-
-        if (sphereMeshComponent && sphereTransformComponent)
-        {
-            float distance = glm::distance(PlayerMesh.globalPosition, sphereTransformComponent->position);
-            if (distance <= attackRadius)
-            {
-                // Apply knockback
-                glm::vec3 knockbackDirection = glm::normalize(sphereTransformComponent->position - PlayerMesh.globalPosition);
-                sphereTransformComponent->position += knockbackDirection * knockbackDistance;
-
-                // Decrease health
-                sphereMeshComponent->health -= 1;
-                if (sphereMeshComponent->health <= 0)
-                {
-                    // Mark sphere for deletion
-                    sphereMeshComponent->markedForDeletion = true;
-                }
-            }
-        }
-    }
-
-    // Remove marked spheres
-    enemyEntities.erase(
-        std::remove_if(enemyEntities.begin(), enemyEntities.end(), [](const std::shared_ptr<Entity>& entity) {
-            auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
-            return sphereMeshComponent && sphereMeshComponent->markedForDeletion;
-        }),
-        enemyEntities.end()
-    );
 }
 
 
