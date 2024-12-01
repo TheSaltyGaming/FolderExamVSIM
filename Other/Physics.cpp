@@ -58,31 +58,31 @@ void Physics::UpdateBallPhysics(Mesh& ball, Mesh& terrain, TerrainGrid& grid, fl
         }
     }
 
-    // 5. Update physics
+    // Physic :)
     glm::vec3 acceleration = netForce / MASS;
     ball.velocity += acceleration * deltaTime;
 
-    // 6. Apply friction directly to velocity when near ground
+    // Give ball friction when close to ground
     if (terrainHeight != -1) {
         float targetHeight = terrainHeight + ballRadius;
-        if (oldPosition.y <= targetHeight + 0.1f) {  // Small threshold for ground check
+        if (oldPosition.y <= targetHeight + 0.1f) {
             float currentFriction = (oldPosition.y < Y_THRESHOLD) ? LOWER_BOUND_FRICTION : DEFAULT_FRICTION;
             ball.velocity.x *= currentFriction;
             ball.velocity.z *= currentFriction;
         }
     }
 
-    // 7. Update position
+    // Update position
     glm::vec3 newPosition = oldPosition + ball.velocity * deltaTime + 0.5f * acceleration * deltaTime * deltaTime;
 
-    // 8. Final collision check
+    // Final collision check
     terrainHeight = grid.GetTerrainHeight(newPosition, grid, terrain.vertices, terrain.indices);
     if (terrainHeight != -1) {
         float targetHeight = terrainHeight + ballRadius;
         if (newPosition.y < targetHeight) {
             newPosition.y = targetHeight;
 
-            // Simple bounce
+            // Bounce with energy loss
             if (ball.velocity.y < 0) {
                 ball.velocity.y = -ball.velocity.y * 0.4f;
             }

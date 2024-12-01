@@ -5,6 +5,7 @@ const int MAX_POINTS = 450;
 
 void BSplineTracer::Update(float deltaTime, Mesh &mesh) {
     if(!drawSpline) return;
+
     accumulatedTime += deltaTime;
 
     if (accumulatedTime >= recordInterval) {
@@ -76,7 +77,7 @@ void BSplineTracer::CalculateSpline() {
 
     // Generate uniform knot vector
     std::vector<float> knots;
-    const int degree = 3; // Assuming degree is 3 for a cubic B-spline
+    const int degree = 3;
     const int numKnots = points.size() + degree + 1;
     //std::cout << "Generating knot vector. Points: " << points.size()
               //<< " Degree: " << degree << " Total knots needed: " << numKnots << std::endl;
@@ -89,7 +90,7 @@ void BSplineTracer::CalculateSpline() {
     //std::cout << "Generated " << knots.size() << " knots" << std::endl;
 
     // Calculate spline points
-    const float step = 0.01f; // Define step size for spline calculation
+    const float step = 0.01f; // Step size
     for (float t = 0.0f; t <= 1.0f; t += step) {
         Vertex splinePoint;
         splinePoint.Position = glm::vec3(0.0f);
@@ -104,7 +105,7 @@ void BSplineTracer::CalculateSpline() {
         }
 
         // Normalize if necessary
-        if (sum > 1e-6f) {
+        if (sum > 0.000001) {
             splinePoint.Position /= sum;
         }
 
