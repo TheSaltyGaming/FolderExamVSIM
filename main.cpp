@@ -761,6 +761,10 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
     {
         EntityPhysics();
+        for (auto& tracer: ballTracers)
+        {
+            tracer.EnableSpline();
+        }
 
     }
     if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
@@ -768,6 +772,7 @@ void processInput(GLFWwindow* window)
         for (auto& tracer : ballTracers)
         {
             tracer.Clear();
+            tracer.DisableSpline();
         }
 
         for (auto& entity : enemyEntities)
@@ -834,6 +839,7 @@ void processInput(GLFWwindow* window)
         rollingBall.velocity = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)) * 5.0f;
 
         Ball1Tracer.Clear();
+        Ball1Tracer.EnableSpline();
 
         pathUpdateTimer = 0.0f;
     }
@@ -843,6 +849,7 @@ void processInput(GLFWwindow* window)
         rollingBall2.velocity = glm::normalize(glm::vec3(MainCamera.cameraFront.x, 0.0f, MainCamera.cameraFront.z)) * 7.5f;
 
         Ball2Tracer.Clear();
+        Ball2Tracer.EnableSpline();
 
 
         pathUpdateTimer = 0.0f;

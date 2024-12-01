@@ -4,7 +4,9 @@
 const int MAX_POINTS = 450;
 
 void BSplineTracer::Update(float deltaTime, Mesh &mesh) {
+    if(!drawSpline) return;
     accumulatedTime += deltaTime;
+
     if (accumulatedTime >= recordInterval) {
         Vertex newPoint;
         newPoint.Position = mesh.globalPosition;

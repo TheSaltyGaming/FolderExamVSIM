@@ -42,14 +42,15 @@ public:
         return points;
     }
 
-
+    void EnableSpline(){drawSpline = true;}
+    void DisableSpline(){drawSpline = false;}
 
 
 private:
     std::vector<Vertex> points;
     std::vector<Vertex> splinePoints;
     float accumulatedTime = 0.0f;
-    float recordInterval = 0.4f;
+    float recordInterval = 0.3f;
 
     // B-spline parameters
     const int degree = 3;  // Cubic B-spline
@@ -59,7 +60,7 @@ private:
 
     void CalculateSpline();
 
-
+    bool drawSpline = false;
 
 
 
