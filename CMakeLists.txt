@@ -53,6 +53,8 @@ add_executable(FolderExamVSIM main.cpp
         Mesh/TerrainGrid.h
         Other/BSplineTracer.cpp
         Other/BSplineTracer.h
+        Systems/ParticleSystem.cpp
+        Systems/ParticleSystem.h
 )
 
 target_link_libraries(FolderExamVSIM glfw)

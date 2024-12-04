@@ -14,6 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x3.hpp>
+#include <glm/gtc/random.hpp>
 
 #include "Shader.h"
 #include "ShaderFileLoader.h"
@@ -25,6 +26,7 @@
 #include "Components/TransformComponent.h"
 #include "PerlinNoise.hpp"
 #include "BsplineFunction.h"
+#include "ParticleSystem.h"
 #include "TerrainGrid.h"
 
 #include "Other/Camera.h"
@@ -89,6 +91,8 @@ glm::vec3 oldBaryCoords = glm::vec3(0.0f);
 ComponentManager componentManager;
 EntityManager entityManager = EntityManager(componentManager);
 RenderSystem renderSystem = RenderSystem(componentManager, entityManager);
+
+ParticleSystem particleSystem = ParticleSystem(50000);
 Physics physics;
 
 // Entities
@@ -243,7 +247,7 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
     Ball1PathMesh.Draw(ShaderProgram.ID);
     Ball2PathMesh.Draw(ShaderProgram.ID);
 
-
+    particleSystem.render(ShaderProgram.ID);
 
 }
 
@@ -347,7 +351,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //turn up pointsize
-    glPointSize(1.0f);
     glLineWidth(5.f);
 
     // render loop
@@ -455,6 +458,16 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
         }
 
+        //PARTICLE SYSTEM STUFF HERE
+
+        glm::vec3 emitPosition(-20.0f, 100.0f, 20.0f);
+        glm::vec3 emitVelocity = glm::sphericalRand(1.0f);
+        float lifeSpan = 11.f;
+        glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
+
+        particleSystem.emit(emitPosition, emitVelocity, lifeSpan, color);
+
+        particleSystem.update(deltaTime);
 
         // input
         // -----
@@ -640,6 +653,12 @@ void SetupMeshes()
     CameraMesh.globalPosition = MainCamera.cameraPos;
 
 #pragma endregion
+
+
+
+    particleSystem.setupBuffers();
+
+    glPointSize(3.f);
 }
 
 int main()
