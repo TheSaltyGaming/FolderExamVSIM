@@ -3,11 +3,15 @@ project(FolderExamVSIM)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(LUA_LIB_DIR "${CMAKE_SOURCE_DIR}/Dependency/libs")
+set(LUA_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/Dependency/includes/lua")
+
 include_directories(Dependency/includes)
 include_directories(Dependency/libs)
 include_directories(ECS)
 include_directories(Systems)
 include_directories(Mesh)
+include_directories(${LUA_INCLUDE_DIR})
 
 add_subdirectory(Dependency/libs/glfw-3.4)
 
@@ -56,7 +60,10 @@ add_executable(FolderExamVSIM main.cpp
         Systems/ParticleSystem.cpp
         Systems/ParticleSystem.h
         Systems/ParticleSystem.cpp
+        Other/LuaManager.cpp
+        Other/LuaManager.h
 )
 
-target_link_libraries(FolderExamVSIM glfw)
-target_link_libraries(FolderExamVSIM lua54)
+target_link_directories(FolderExamVSIM PRIVATE ${LUA_LIB_DIR})
+target_link_libraries(FolderExamVSIM glfw lua54)
+

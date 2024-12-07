@@ -15,6 +15,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x3.hpp>
 #include <glm/gtc/random.hpp>
+#include <lua.hpp>
 
 #include "Shader.h"
 #include "ShaderFileLoader.h"
@@ -32,7 +33,9 @@
 #include "Other/Camera.h"
 #include "Other/Collision.h"
 #include "Other/BSplineTracer.h"
+#include "Other/LuaManager.h"
 #include "Other/Physics.h"
+
 
 // Function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -45,6 +48,7 @@ void UpdateBallTracers();
 glm::vec3 RandomColor();
 void UpdateBall(Mesh &Ball, Mesh &Terrain, float deltaTIme);
 void EntitySetup();
+void LuaSetup();
 
 // Color
 struct colorStruct {
@@ -127,6 +131,8 @@ TerrainGrid terrainGrid;
 int lives = 6;
 glm::vec3 lastPos = glm::vec3(999999.f);
 std::vector<unsigned> shaderPrograms;
+
+LuaManager lua;
 
 // Timers
 float pathUpdateTimer = 0.0f;
@@ -213,6 +219,23 @@ void EntitySetup()
 
         // Add sphere entity to the enemyEntities vector
         enemyEntities.push_back(sphereEntity);
+    }
+}
+
+void LuaSetup()
+{
+    LuaManager lua;
+
+    // Execute the Lua script
+    if (lua.DoFile("lua/testFile.lua"))
+    {
+        // Ensure "testFile.lua" is in the executable's directory
+        // Call a Lua function named "myLuaFunction" with arguments 2 and 1, expecting 1 result
+        int result = lua.CallLuaFunction("myLuaFunction", 2, 1);
+        std::cout << "Result from myLuaFunction: " << result << std::endl;
+
+        // Optional: Run the interactive Lua interpreter
+        //lua.RunInterpreter();
     }
 }
 
@@ -712,6 +735,7 @@ int main()
     /// SETUP MESHES HER
     EntitySetup();
     SetupMeshes();
+    LuaSetup();
 
 
     unsigned int VBO, VAO;
