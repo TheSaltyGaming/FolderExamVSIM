@@ -358,6 +358,8 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     while (!glfwWindowShouldClose(window))
     {
 
+
+
         glLineWidth(12);
 
         float currentFrame = glfwGetTime();
@@ -461,11 +463,9 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         //PARTICLE SYSTEM STUFF HERE
 
         glm::vec3 emitPosition(-20.0f, 100.0f, 20.0f);
-        glm::vec3 emitVelocity = glm::sphericalRand(1.0f);
         float lifeSpan = 11.f;
-        glm::vec4 color(0.0f, 0.0f, 1.0f, 1.0f);
 
-        particleSystem.emit(emitPosition, emitVelocity, lifeSpan, color);
+        particleSystem.emit(emitPosition, lifeSpan);
 
         particleSystem.update(deltaTime);
 

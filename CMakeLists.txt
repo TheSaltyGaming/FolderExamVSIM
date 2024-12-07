@@ -55,6 +55,8 @@ add_executable(FolderExamVSIM main.cpp
         Other/BSplineTracer.h
         Systems/ParticleSystem.cpp
         Systems/ParticleSystem.h
+        Systems/ParticleSystem.cpp
 )
 
 target_link_libraries(FolderExamVSIM glfw)
+target_link_libraries(FolderExamVSIM lua54)

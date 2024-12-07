@@ -1,45 +1,26 @@
-//
-// Created by Anders on 04.12.2024.
-//
-
+// ParticleSystem.h
 #ifndef PARTICLESYSTEM_H
 #define PARTICLESYSTEM_H
+
 #include <vector>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-class Shader;
-
-struct Particle
-{
-    glm::vec3 position;
-    glm::vec3 velocity;
-    float lifeSpan;
-    glm::vec4 color;
-    glm::vec3 normal;
-};
-
-
-
 class ParticleSystem {
-
 public:
     ParticleSystem(int maxParticles);
-
     void update(float deltaTime);
     void render(unsigned ShaderProgram);
-    void emit(glm::vec3& position, glm::vec3& velocity, float lifeSpan, glm::vec4 &color);
+    void emit(const glm::vec3& position, float lifeSpan);
     void setupBuffers();
 
 private:
-    std::vector<Particle> particles;
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> velocities;
+    std::vector<float> lifeSpans;
     int maxParticles;
     float gravity = 9.81f;
-
     unsigned int VAO, VBO;
-
 };
 
-
-
-#endif //PARTICLESYSTEM_H
+#endif // PARTICLESYSTEM_H
