@@ -48,6 +48,7 @@ void UpdateBallTracers();
 glm::vec3 RandomColor();
 void UpdateBall(Mesh &Ball, Mesh &Terrain, float deltaTIme);
 void EntitySetup();
+void InstansiateMesh(float minpos, float maxPos, float scale);
 void LuaSetup();
 
 // Color
@@ -132,6 +133,7 @@ int lives = 6;
 glm::vec3 lastPos = glm::vec3(999999.f);
 std::vector<unsigned> shaderPrograms;
 
+//LUA HERE
 LuaManager lua;
 
 // Timers
@@ -182,7 +184,7 @@ void EntitySetup()
     }
 
 
-    int SphereCount = 25;
+    int SphereCount = 1;
 
 
     ballTracers.clear();
@@ -222,21 +224,36 @@ void EntitySetup()
     }
 }
 
+void InstansiateMesh(float minpos, float maxPos, float scale)
+{
+    std::cout << "Instansiating mesh with pos " << minpos << " " << maxPos << " and scale " << scale << std::endl;
+
+
+
+    auto sphereEntity = std::make_shared<Entity>(entityManager.CreateEntity());
+
+    // Add Transform Component
+    auto sphereTransformComponent = std::make_shared<TransformComponent>();
+    sphereTransformComponent->position = glm::vec3(
+        math.RandomVec3(minpos, maxPos).x,
+        0.5, // y
+        math.RandomVec3(minpos, maxPos).z
+    );
+    sphereTransformComponent->scale = glm::vec3(scale, scale, scale);
+    sphereTransformComponent->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    // Add Mesh Component
+    auto sphereMeshComponent = std::make_shared<Mesh>(Sphere, 1.f, 4, RandomColor(), sphereTransformComponent.get());
+
+    componentManager.AddComponent<TransformComponent>(sphereEntity->GetId(), sphereTransformComponent);
+    componentManager.AddComponent<Mesh>(sphereEntity->GetId(), sphereMeshComponent);
+
+    enemyEntities.push_back(sphereEntity);
+}
+
 void LuaSetup()
 {
-    LuaManager lua;
-
-    // Execute the Lua script
-    if (lua.DoFile("lua/testFile.lua"))
-    {
-        // Ensure "testFile.lua" is in the executable's directory
-        // Call a Lua function named "myLuaFunction" with arguments 2 and 1, expecting 1 result
-        int result = lua.CallLuaFunction("myLuaFunction", 2, 1);
-        std::cout << "Result from myLuaFunction: " << result << std::endl;
-
-        // Optional: Run the interactive Lua interpreter
-        //lua.RunInterpreter();
-    }
+    return;
 }
 
 
@@ -435,13 +452,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         for (size_t i = 0; i < enemyEntities.size(); ++i) {
             // Get the mesh component for this entity
             auto meshComponent = componentManager.GetComponent<Mesh>(enemyEntities[i]->GetId());
-
-            // Update the tracer for this entity
-            ballTracers[i].Update(deltaTime, *meshComponent);
-
-            pathMeshes[i].vertices.clear();
-            pathMeshes[i].vertices = ballTracers[i].GetSplinePoints();
-            pathMeshes[i].Setup();
         }
 
         if (glm::length(rollingBall.velocity) > 0.1f) {
@@ -455,10 +465,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             Ball2PathMesh.vertices = Ball2Tracer.GetSplinePoints();
             Ball2PathMesh.Setup();
         }
-
-
-
-
         //physics.UpdateBallPhysics(rollingBall, surfaceMesh, deltaTime);
 
         //cout camera position
@@ -777,9 +783,6 @@ int main()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
-    glfwTerminate();
     return 0;
 }
 
@@ -799,6 +802,13 @@ void processInput(GLFWwindow* window)
         if (sphereMeshes[randomSphere]->velocity == glm::vec3(0.f,0.f,0.f))
         {
             sphereMeshes[randomSphere]->velocity = glm::vec3(math.RandomVec3(-4, 4).x, 0.0f, math.RandomVec3(-4, 4).z);
+        }
+    }    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+    {
+        if (lua.DoFile("lua/testFile.lua"))
+        {
+            lua.CallLuaFunction("SpawnActor");
+
         }
     }
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)

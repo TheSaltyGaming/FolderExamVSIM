@@ -1,9 +1,5 @@
-print("Hello from Lua!")
 
-function myLuaFunction(a, b)
-    local sum = a + b
-    print("The sum of " .. a .. " and " .. b .. " is: " .. sum)
-    return sum * 2  -- Return a value back to C++
+function SpawnActor()
+    print("Spawning actor")
+    InstansiateMesh(60.0, 10.0, 0.1)
 end
-
-PrintText("Hello from C++!")

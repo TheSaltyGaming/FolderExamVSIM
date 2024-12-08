@@ -12,8 +12,12 @@ extern "C" {
     #include "lualib.h"
 }
 
+
+extern void InstansiateMesh(float minPos, float maxPos, float scale);
+
 class LuaManager {
 public:
+
     LuaManager() {
         // Initialize Lua
         L = luaL_newstate();
@@ -54,124 +58,50 @@ public:
         return true;
     }
 
-    // Call a Lua function with specific arguments and retrieve results
-    int CallLuaFunction(const std::string& functionName, int a, int b) {
-        // Push the function onto the stack
-        lua_getglobal(L, functionName.c_str());
 
+    void CallLuaFunction(const std::string& functionName) {
+
+        lua_getglobal(L, functionName.c_str());
         if (!lua_isfunction(L, -1)) {
             std::cerr << "Lua function '" << functionName << "' not found.\n";
-            lua_pop(L, 1); // Remove non-function value
-            return 0;
+            lua_pop(L, 1);
+            return;
         }
 
-        // Push arguments
-        lua_pushnumber(L, a);
-        lua_pushnumber(L, b);
 
-        // Call the function with 2 arguments and 1 result
-        if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+        if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
             ReportError();
-            return 0;
-        }
-
-        // Retrieve the result
-        if (!lua_isnumber(L, -1)) {
-            std::cerr << "Function '" << functionName << "' must return a number.\n";
-            lua_pop(L, 1); // Remove the non-number result
-            return 0;
-        }
-
-        int result = static_cast<int>(lua_tointeger(L, -1));
-        lua_pop(L, 1); // Remove the result from the stack
-        return result;
-    }
-
-    // Simple REPL for Lua
-    void RunInterpreter() {
-        std::string input;
-        while (true) {
-            std::cout << "> ";
-            std::getline(std::cin, input);
-            if (input == "exit") break;
-            if (!DoString(input)) {
-                std::cerr << "Error executing command.\n";
-            }
         }
     }
 
 private:
     lua_State* L;
 
-    // Register all C++ functions with Lua
     void RegisterFunctions() {
-        lua_register(L, "PrintText", PrintText);
-        lua_register(L, "cAdd", cAdd);
-        lua_register(L, "average", average);
+        lua_register(L, "InstansiateMesh", Lua_InstansiateMesh);
     }
 
-    // Report Lua errors
     void ReportError() {
         const char* errorMsg = lua_tostring(L, -1);
         std::cerr << "Lua Error: " << (errorMsg ? errorMsg : "Unknown error") << "\n";
-        lua_pop(L, 1); // Remove error message from stack
+        lua_pop(L, 1);
     }
 
-    // ------------------ C++ Functions Exposed to Lua ------------------
 
-    // C++ function to print text from Lua
-    static int PrintText(lua_State* L) {
-        // Check if the first argument is a string
-        if (!lua_isstring(L, 1)) {
-            lua_pushstring(L, "Incorrect argument to 'PrintText'. Expected a string.");
+    static int Lua_InstansiateMesh(lua_State* L) {
+        if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
+            lua_pushstring(L, "Incorrect arguments to 'InstansiateMesh'. Expected three numbers.");
             lua_error(L);
             return 0;
         }
 
-        // Get the string from Lua
-        const char* text = lua_tostring(L, 1);
-        std::cout << text << std::endl;
+        float minPos = static_cast<float>(lua_tonumber(L, 1));
+        float maxPos = static_cast<float>(lua_tonumber(L, 2));
+        float scale = static_cast<float>(lua_tonumber(L, 3));
 
-        return 0; // Number of return values
-    }
+        InstansiateMesh(minPos, maxPos, scale);
 
-    // C++ addition function callable from Lua
-    static int cAdd(lua_State* L) {
-        // Ensure there are at least 2 arguments and they are numbers
-        if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-            lua_pushstring(L, "Incorrect arguments to 'cAdd'. Expected two numbers.");
-            lua_error(L);
-            return 0;
-        }
-
-        double n1 = lua_tonumber(L, 1);
-        double n2 = lua_tonumber(L, 2);
-        lua_pushnumber(L, n1 + n2);
-        return 1;
-    }
-
-    // C++ average function callable from Lua
-    static int average(lua_State* L) {
-        // Get the number of arguments
-        int n = lua_gettop(L);
-        if (n == 0) {
-            lua_pushstring(L, "No arguments provided to 'average'.");
-            lua_error(L);
-            return 0;
-        }
-
-        double sum = 0.0;
-        for (int i = 1; i <= n; ++i) {
-            if (!lua_isnumber(L, i)) {
-                lua_pushstring(L, "All arguments to 'average' must be numbers.");
-                lua_error(L);
-                return 0;
-            }
-            sum += lua_tonumber(L, i);
-        }
-        lua_pushnumber(L, sum / n);
-        lua_pushnumber(L, sum);
-        return 2;
+        return 0;
     }
 };
 
