@@ -50,6 +50,7 @@ void UpdateBall(Mesh &Ball, Mesh &Terrain, float deltaTIme);
 void EntitySetup();
 void InstansiateMesh(float minpos, float maxPos, float scale);
 void LuaSetup();
+void CollisionChecking();
 
 // Color
 struct colorStruct {
@@ -511,6 +512,8 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
 
         renderSystem.Update(deltaTime);
 
+        CollisionChecking();
+
         //CollisionChecking();
 
 
@@ -805,7 +808,7 @@ void processInput(GLFWwindow* window)
         }
     }    if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
     {
-        if (lua.DoFile("lua/testFile.lua"))
+        if (lua.DoFile("Lua/testFile.lua"))
         {
             lua.CallLuaFunction("SpawnActor");
 
@@ -1012,3 +1015,23 @@ void UpdateBall(Mesh &ball, Mesh &Terrain, float deltaTIme)
     }
 }
 
+void CollisionChecking()
+{
+
+    int p = 0;
+    for (int i = 0; i < enemyEntities.size(); ++i)
+    {
+        auto sphereMeshComponent1 = componentManager.GetComponent<Mesh>(enemyEntities[i]->GetId());
+
+        if (sphereMeshComponent1->velocity == glm::vec3(0.f))
+            break;
+
+        for (int j = p + 1; j < enemyEntities.size(); ++j)
+        {
+            auto sphereMeshComponent2 = componentManager.GetComponent<Mesh>(enemyEntities[j]->GetId());
+            collision.SphereCollision(sphereMeshComponent1.get(), sphereMeshComponent2.get());
+        }
+        p++;
+    }
+
+}

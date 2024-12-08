@@ -1,16 +1,11 @@
 // LuaManager.h
 #ifndef LUAMANAGER_H
 #define LUAMANAGER_H
-
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
 #include <iostream>
 #include <string>
-
-// Include Lua headers
-extern "C" {
-    #include "lua.h"
-    #include "lauxlib.h"
-    #include "lualib.h"
-}
 
 
 extern void InstansiateMesh(float minPos, float maxPos, float scale);
@@ -40,7 +35,6 @@ public:
         }
     }
 
-    // Execute a Lua file
     bool DoFile(const std::string& filePath) {
         if (luaL_dofile(L, filePath.c_str()) != LUA_OK) {
             ReportError();
