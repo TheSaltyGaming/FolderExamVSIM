@@ -1,5 +1,5 @@
 
 function SpawnActor()
     print("Spawning actor")
-    InstansiateMesh(20.0, 10.0, 0.5)
+    InstansiateMesh(35.0, 25.0, 0.3)
 end

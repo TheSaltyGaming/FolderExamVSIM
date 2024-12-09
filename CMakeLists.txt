@@ -62,6 +62,7 @@ add_executable(FolderExamVSIM main.cpp
         Systems/ParticleSystem.cpp
         Other/LuaManager.cpp
         Other/LuaManager.h
+        Components/MeshComponent.h
 )
 
 target_link_directories(FolderExamVSIM PRIVATE ${LUA_LIB_DIR})
