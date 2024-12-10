@@ -102,15 +102,12 @@ ParticleSystem particleSystem = ParticleSystem(50000);
 Physics physics;
 
 // Entities
-std::unique_ptr<Entity> playerEntity;
-std::vector<std::shared_ptr<Entity>> healthPotions;
 std::vector<std::shared_ptr<Entity>> enemyEntities;
 
 // Meshes
 std::vector<Mesh*> sphereMeshes;
 std::vector<Mesh*> rollingBalls;
 std::vector<Mesh> pathMeshes;
-Mesh PlayerMesh;
 Mesh LightCube;
 Mesh PointCloud;
 Mesh surfaceMesh;
@@ -142,48 +139,6 @@ float pathUpdateTimer = 0.0f;
 
 void EntitySetup()
 {
-    playerEntity = std::make_unique<Entity>(entityManager.CreateEntity());
-
-    auto transformComponent = std::make_shared<TransformComponent>();
-    transformComponent->position = glm::vec3(0.0f, 0.0f, 0.0f);
-    transformComponent->scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    transformComponent->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-
-    transformComponent->scale = glm::vec3(0.1f, 0.1f, 0.1f);
-
-    auto meshComponent = std::make_shared<Mesh>(Cube, 1.0f, glm::vec3(colors.magenta), transformComponent.get());
-
-    componentManager.AddComponent<TransformComponent>(playerEntity->GetId(), transformComponent);
-    componentManager.AddComponent<Mesh>(playerEntity->GetId(), meshComponent);
-
-    // componentManager.AddComponent<TransformComponent>(newEntity.GetId(), transformComponent);
-    // componentManager.AddComponent<Mesh>(newEntity.GetId(), meshComponent);
-
-    // Set up health potions
-    glm::vec3 scale = glm::vec3(0.05f);
-    glm::vec3 initialPosition = glm::vec3(0.0f);
-
-
-    for (int i = 0; i < 3; ++i) {
-        // Create new entity for the health potion
-        auto healthPotion = std::make_shared<Entity>(entityManager.CreateEntity());
-
-        // Add Transform Component
-        auto potionTransformComponent = std::make_shared<TransformComponent>();
-        potionTransformComponent->position = initialPosition + glm::vec3(i * 1.0f, 0.5f, 0.0f);
-        potionTransformComponent->scale = scale;
-        potionTransformComponent->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        // Add Mesh Component
-        auto potionMeshComponent = std::make_shared<Mesh>(Cube, 1.0f, colors.blue, potionTransformComponent.get());
-
-        componentManager.AddComponent<TransformComponent>(healthPotion->GetId(), potionTransformComponent);
-        componentManager.AddComponent<Mesh>(healthPotion->GetId(), potionMeshComponent);
-
-        // Add health potion entity to the global vector
-        healthPotions.push_back(healthPotion);
-    }
-
 
     int SphereCount = 1;
 
@@ -294,43 +249,6 @@ void DrawObjects(unsigned VAO, Shader ShaderProgram)
 
 void EntityPhysics()
 {
-#pragma region OldHoming code
-    for (auto& entity : enemyEntities)
-    {
-        auto sphereMeshComponent = componentManager.GetComponent<Mesh>(entity->GetId());
-        auto sphereTransformComponent = componentManager.GetComponent<TransformComponent>(entity->GetId());
-
-        if (sphereMeshComponent && sphereTransformComponent)
-        {
-            sphereMeshComponent->Physics(deltaTime);
-
-            // Hoaming towards player
-            if (glm::distance(PlayerMesh.globalPosition, sphereTransformComponent->position) < 3)
-            {
-                lastPos = PlayerMesh.globalPosition;
-
-                glm::vec3 direction = glm::normalize(PlayerMesh.globalPosition - sphereTransformComponent->position);
-                sphereMeshComponent->velocity += direction * 0.01f;
-            }
-            // Hoaming towards last position
-            else if (glm::distance(lastPos, sphereTransformComponent->position) < 3)
-            {
-                glm::vec3 direction = glm::normalize(lastPos - sphereTransformComponent->position);
-                sphereMeshComponent->velocity += direction * 0.01f;
-            }
-            else
-            {
-                sphereMeshComponent->velocity = glm::vec3(0.f);
-            }
-
-            // Speed cap
-            if (glm::length(sphereMeshComponent->velocity) > 0.5f)
-            {
-                sphereMeshComponent->velocity = glm::normalize(sphereMeshComponent->velocity) * 0.5f;
-            }
-        }
-    }
-#pragma endregion
 
     for (auto& entity : enemyEntities)
     {
@@ -368,11 +286,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-
-    //TEMP CODE:
-    auto transformComponent = componentManager.GetComponent<TransformComponent>(playerEntity->GetId());
-    transformComponent->position = PlayerMesh.globalPosition;
-    transformComponent->scale = glm::vec3(0.25f, 0.25f, 0.25f);
 
     // Before the main loop, set the ambient color
     glm::vec3 ambientColor = glm::vec3(0.3f, 0.3f, 0.3f); // A soft grey ambient light
@@ -437,9 +350,6 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
             }
         }
 
-        auto transformComponent = componentManager.GetComponent<TransformComponent>(playerEntity->GetId());
-        transformComponent->position = PlayerMesh.globalPosition;
-
         //for every sphere do physics
         //EntityPhysics();
 
@@ -474,13 +384,9 @@ void render(GLFWwindow* window, Shader ourShader, unsigned VAO)
         {
             if (firstCamera)
             {
-                MainCamera.cameraPos = PlayerMesh.globalPosition;
-                MainCamera.cameraPos.y += 5.0f;
 
                 firstCamera = false;
             }
-            PlayerMesh.globalPosition.x = MainCamera.cameraPos.x;
-            PlayerMesh.globalPosition.z = MainCamera.cameraPos.z;
 
             MainCamera.pitch = -89.0f;
         }
@@ -649,7 +555,6 @@ void SetupMeshes()
     LightCube.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
     LightCube.Setup();
 
-    PlayerMesh = Mesh(Cube, 1.f, colors.magenta, nullptr);
 
     std::vector<Vertex> points = math.loadPointCloud("pointCloud.txt");
 
@@ -657,8 +562,7 @@ void SetupMeshes()
     PointCloud.vertices = points;
     PointCloud.Setup();
 
-    PlayerMesh.globalPosition = glm::vec3(0.0f, 0.5f, 0.0f);
-    PlayerMesh.globalScale = glm::vec3(0.2f, 0.2f, 0.2f);
+
 
 
 
